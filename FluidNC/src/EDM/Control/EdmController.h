@@ -30,6 +30,8 @@ public:
     EdmReport    snapshot() const { return _report; }
     int32_t  vCmdUmPerS()   const { return _report.v_cmd_um_s; }
     EdmState reportedState() const { return EdmState(_report.controller_state); }
+    uint8_t feedCapPct()        const { return _report.feed_cap_pct; }   // 0..100
+    uint8_t wireBreakSeverity() const { return _report.wire_break_sev; } // 0..3
 private:
     EDM::servo::GapServoInput buildInput(const EDM::psu::StatsAgg& s, bool fresh);
     void drainEvents();

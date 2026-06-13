@@ -14,6 +14,7 @@
 #include "EDM/Servo/GapServo.h"
 #include "EDM/Servo/ModeTable.h"
 #include "EDM/Psu/IPsuLink.h"
+#include "EDM/Feed/WireFeed.h"
 
 #include <memory>
 
@@ -46,6 +47,11 @@ private:
     int32_t                            _report_hz = 10;
     std::unique_ptr<EDM::psu::IPsuLink> _link;
     std::unique_ptr<EDM::EdmController> _ctl;
+
+    // Wire-feed hardware. _feed_cfg is parser-allocated (pointer section idiom);
+    // null when the YAML has no wire_feed: section, in which case the feed stays off.
+    EDM::feed::WireFeedConfig*          _feed_cfg = nullptr;
+    std::unique_ptr<EDM::feed::WireFeed> _feed;
 };
 
 }  // namespace Spindles

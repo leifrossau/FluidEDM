@@ -12,6 +12,7 @@
 #include "EDM/Servo/ModeTable.h"
 #include "EDM/Psu/SimPsuLink.h"
 #include "EDM/EdmServoTask.h"
+#include "EDM/EdmWireFeedTask.h"
 
 #include "Logging.h"  // log_info
 
@@ -41,6 +42,13 @@ void EdmSpindle::init() {
 
     // Spin up the 1 kHz gap-servo task.
     startEdmServoTask(_ctl.get());
+
+    // Wire feed + tension (optional: only when a wire_feed: section was parsed).
+    if (_feed_cfg) {
+        _feed = std::make_unique<EDM::feed::WireFeed>();
+        _feed->begin(_ctl.get(), *_feed_cfg);
+        startWireFeedTask(_feed.get());
+    }
 
     config_message();
 }
@@ -72,6 +80,9 @@ void EdmSpindle::group(Configuration::HandlerBase& handler) {
     handler.item("servo_deadband", _cfg.deadband);
     // TODO(P4): parse the full edm: schema -- remaining ServoConfig fields and
     // the ModeTable (rough/finish/ignite ModeParams + thresholds).
+
+    // Wire-feed hardware sub-section (parser-allocated; optional).
+    handler.section("wire_feed", _feed_cfg);
 
     Spindle::group(handler);
 }
