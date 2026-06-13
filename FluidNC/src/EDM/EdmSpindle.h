@@ -35,6 +35,8 @@ public:
     void config_message() override;
     void group(Configuration::HandlerBase& handler) override;
 
+    EDM::EdmController* controller() const { return _ctl.get(); }
+
     ~EdmSpindle() {}
 
 private:

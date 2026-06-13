@@ -21,6 +21,9 @@
 #include "Parameters.h"
 #include "Flowcontrol.h"
 
+#include "EDM/Motion/EdmMotion.h"  // EDM::motion::runCut / runCutArc (ESP32-coupled)
+#include "Spindles/Spindle.h"      // extern Spindles::Spindle* spindle
+
 #include <string.h>  // memset
 #include <math.h>    // sqrt etc.
 
@@ -1888,22 +1891,43 @@ Error gc_execute_line(const char* input_line) {
     if (gc_state.modal.motion != Motion::None) {
         if (axis_command == AxisCommand::MotionMode) {
             GCUpdatePos gc_update_pos = GCUpdatePos::Target;
+            // EDM cut mode: when the active spindle is the EDM spindle and cutting (M3),
+            // feed moves (G1/G2/G3) are servo-fed through the EDM motion stack instead of
+            // streamed straight to the planner. Rapids (G0/Seek) are never diverted.
+            bool edm_cut = spindle && spindle->isRateAdjusted() && (gc_state.modal.spindle == SpindleState::Cw) &&
+                           (strcmp(spindle->name(), "EDM") == 0);
             if (gc_state.modal.motion == Motion::Linear) {
-                mc_linear(gc_block.values.xyz, pl_data, gc_state.position);
+                if (edm_cut) {
+                    EDM::motion::runCut(gc_block.values.xyz, pl_data, gc_state.position);
+                } else {
+                    mc_linear(gc_block.values.xyz, pl_data, gc_state.position);
+                }
             } else if (gc_state.modal.motion == Motion::Seek) {
                 pl_data->motion.rapidMotion = 1;  // Set rapid motion flag.
                 mc_linear(gc_block.values.xyz, pl_data, gc_state.position);
             } else if ((gc_state.modal.motion == Motion::CwArc) || (gc_state.modal.motion == Motion::CcwArc)) {
-                mc_arc(gc_block.values.xyz,
-                       pl_data,
-                       gc_state.position,
-                       gc_block.values.ijk,
-                       gc_block.values.r,
-                       axis_0,
-                       axis_1,
-                       axis_linear,
-                       clockwiseArc,
-                       int(gc_block.values.p));
+                if (edm_cut) {
+                    EDM::motion::runCutArc(gc_block.values.xyz,
+                                           pl_data,
+                                           gc_state.position,
+                                           gc_block.values.ijk,
+                                           gc_block.values.r,
+                                           axis_0,
+                                           axis_1,
+                                           clockwiseArc,
+                                           int(gc_block.values.p));
+                } else {
+                    mc_arc(gc_block.values.xyz,
+                           pl_data,
+                           gc_state.position,
+                           gc_block.values.ijk,
+                           gc_block.values.r,
+                           axis_0,
+                           axis_1,
+                           axis_linear,
+                           clockwiseArc,
+                           int(gc_block.values.p));
+                }
             } else {
                 // NOTE: gc_block.values.xyz is returned from mc_probe_cycle with the updated position value. So
                 // upon a successful probing cycle, the machine position and the returned value should be the same.
