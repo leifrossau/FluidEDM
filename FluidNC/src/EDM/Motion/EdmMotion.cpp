@@ -134,12 +134,10 @@ static bool runContour(EDM::EdmController* ctl, const ContourBuffer& contour, co
         const int32_t v = ctl->vCmdUmPerS();
         SampleResult  r = sampler.step(st, v, dt);
 
-        // Block done only when we reached the end AND are not still retracting.
-        if (r.block_done && v >= 0) {
-            protocol_buffer_synchronize();
-            return true;
-        }
-
+        // Submit this tick's segment FIRST. When the sampler reports block_done it
+        // also returns the final approach segment (want_emit includes block_done),
+        // so checking done before emitting would drop the last segment and stop the
+        // machine up to seg_max short of the programmed endpoint.
         if (r.emit != Emit::None) {
             // Wait until the (deliberately shallow) planner buffer has room. in-flight
             // count is derived from plan_get_block_buffer_available():
@@ -179,6 +177,14 @@ static bool runContour(EDM::EdmController* ctl, const ContourBuffer& contour, co
                 send_alarm(ExecAlarm::SoftLimit);
                 return false;
             }
+        }
+
+        // Now that the final segment is queued, complete on forward arrival.
+        // (st.done is set by the sampler, so the loop never iterates again to
+        // produce a spurious zero-length segment.)
+        if (r.block_done && v >= 0) {
+            protocol_buffer_synchronize();
+            return true;
         }
 
         delay_ms(1);

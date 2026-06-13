@@ -119,3 +119,25 @@ TEST(EdmPathSampler, FeedMapsToMmMinWithFloor) {
     // v_cmd 66667 um/s saturates v_max_mm_s (0.1 mm/s) -> 0.1*60 = 6.0 mm/min.
     EXPECT_NEAR(r.feed_mm_min, 6.0f, 0.6f);
 }
+
+// Realistic operating point: GapServo's v_feed_max = 4 mm/min = ~67 um/s, BELOW the
+// v_max_mm_s cap. Exercises the NON-saturated regime: sparse emits, sub-seg_max
+// segments, feed ~4 mm/min (not the saturated 6.0).
+TEST(EdmPathSampler, RealisticFeedNonSaturated) {
+    ContourBuffer c = lineContour(10.0f);
+    SamplerConfig cfg; PathSampler s(c, cfg);
+    SamplerState st; SampleResult r;
+    int emits = 0, ticks = 0;
+    float last_feed = 0.0f;
+    for (; ticks < 6000 && !st.done; ++ticks) {
+        r = s.step(st, 67, 0.001f);            // 67 um/s = 4 mm/min, under the 6 mm/min cap
+        if (r.emit != Emit::None) {
+            emits++;
+            last_feed = r.feed_mm_min;
+            EXPECT_LT(r.seg_len_mm, cfg.seg_max_mm);   // seg_max never binds at realistic speed
+        }
+    }
+    EXPECT_GT(emits, 0);
+    EXPECT_LT(emits, ticks / 100);             // sparse: roughly one emit per ~300 ticks
+    EXPECT_NEAR(last_feed, 4.0f, 0.6f);        // unsaturated feed tracks v_cmd, ~4 mm/min
+}
