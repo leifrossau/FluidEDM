@@ -28,6 +28,8 @@ public:
     EdmState     state() const  { return _state; }
     FaultReason  fault() const  { return _fault; }
     EdmReport    snapshot() const { return _report; }
+    int32_t  vCmdUmPerS()   const { return _report.v_cmd_um_s; }
+    EdmState reportedState() const { return EdmState(_report.controller_state); }
 private:
     EDM::servo::GapServoInput buildInput(const EDM::psu::StatsAgg& s, bool fresh);
     void drainEvents();
