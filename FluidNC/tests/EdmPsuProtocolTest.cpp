@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include "EDM/Psu/Protocol.h"
 #include "EDM/Psu/Endian.h"
+#include <cstring>
 
 using namespace EDM;
 using namespace EDM::psu;
@@ -99,4 +100,53 @@ TEST(EdmPsuProto, DecodeAckRoundTrip) {
     EXPECT_EQ(a.seq, 0x1234);
     EXPECT_EQ(a.freq_max_kHz, 190);
     EXPECT_EQ(a.status, 0);
+}
+
+TEST(EdmPsuProto, DecodeWireBreak) {
+    CanFrame f(ID_WIRE_BREAK, 14);
+    f.data[0] = 3;                      // severity critical
+    f.data[1] = 0x05;                   // cause flags
+    EDM::le::put_u16(f.data + 2, 12);   // recent_short
+    EDM::le::put_u16(f.data + 4, 7);    // recent_arc
+    EDM::le::put_u32(f.data + 6, 9999); // delay_var
+    EDM::le::put_u32(f.data + 10, 5000);// timestamp
+    WireBreakImminent w;
+    ASSERT_TRUE(decodeWireBreak(f, w));
+    EXPECT_EQ(w.severity, 3);
+    EXPECT_EQ(w.recent_short_count, 12);
+    EXPECT_EQ(w.timestamp_ms_since_start, 5000u);
+}
+
+TEST(EdmPsuProto, DecodeFault) {
+    CanFrame f(ID_FAULT, 8);
+    f.data[0] = 2;  // fault_code
+    f.data[1] = 3;  // severity
+    f.data[2] = 0xAA;
+    Fault flt;
+    ASSERT_TRUE(decodeFault(f, flt));
+    EXPECT_EQ(flt.fault_code, 2);
+    EXPECT_EQ(flt.severity, 3);
+    EXPECT_EQ(flt.detail[0], 0xAA);
+}
+
+TEST(EdmPsuProto, DecodeInfoNullTerminates) {
+    CanFrame f(ID_INFO, 5);
+    std::memcpy(f.data, "hello", 5);
+    char buf[16] = {};
+    ASSERT_TRUE(decodeInfo(f, buf, sizeof(buf)));
+    EXPECT_STREQ(buf, "hello");
+}
+
+TEST(EdmPsuProto, DecodePsuStatus) {
+    CanFrame f(ID_PSU_STATUS, 13);
+    f.data[0] = 0;                       // state
+    EDM::le::put_u16(f.data + 1, 0x0101);// fpga
+    EDM::le::put_u16(f.data + 3, 0x0202);// mcu
+    EDM::le::put_u16(f.data + 5, 1);     // protocol version
+    EDM::le::put_u32(f.data + 7, 3600);  // uptime
+    EDM::le::put_u16(f.data + 11, 0);    // fault_count
+    PsuStatus st;
+    ASSERT_TRUE(decodePsuStatus(f, st));
+    EXPECT_EQ(st.protocol_version, 1);
+    EXPECT_EQ(st.uptime_s, 3600u);
 }

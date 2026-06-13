@@ -67,4 +67,52 @@ bool decodeAckModeBounds(const CanFrame& f, AckModeBounds& a) {
     return true;
 }
 
+bool decodeWireBreak(const CanFrame& f, WireBreakImminent& w) {
+    if (f.id != ID_WIRE_BREAK || f.len < 14) return false;
+    const uint8_t* d = f.data;
+    w.severity                 = le::get_u8 (d + 0);
+    w.cause_flags              = le::get_u8 (d + 1);
+    w.recent_short_count       = le::get_u16(d + 2);
+    w.recent_arc_count         = le::get_u16(d + 4);
+    w.ignition_delay_var_ns2   = le::get_u32(d + 6);
+    w.timestamp_ms_since_start = le::get_u32(d + 10);
+    return true;
+}
+
+bool decodeFault(const CanFrame& f, Fault& flt) {
+    if (f.id != ID_FAULT || f.len < 2) return false;
+    flt.fault_code = f.data[0];
+    flt.severity   = f.data[1];
+    std::memset(flt.detail, 0, sizeof(flt.detail));
+    uint8_t n = f.len > 8 ? 6 : uint8_t(f.len - 2);
+    std::memcpy(flt.detail, f.data + 2, n);
+    return true;
+}
+
+bool decodeArcBurst(const CanFrame& f, ArcBurst& a) {
+    if (f.id != ID_ARC_BURST || f.len < 2) return false;
+    a.consecutive_arcs = le::get_u16(f.data + 0);
+    return true;
+}
+
+bool decodeInfo(const CanFrame& f, char* out, size_t out_cap) {
+    if (f.id != ID_INFO || out_cap == 0) return false;
+    size_t n = f.len < (out_cap - 1) ? f.len : (out_cap - 1);
+    std::memcpy(out, f.data, n);
+    out[n] = '\0';
+    return true;
+}
+
+bool decodePsuStatus(const CanFrame& f, PsuStatus& st) {
+    if (f.id != ID_PSU_STATUS || f.len < 13) return false;
+    const uint8_t* d = f.data;
+    st.state            = le::get_u8 (d + 0);
+    st.fpga_version     = le::get_u16(d + 1);
+    st.mcu_version      = le::get_u16(d + 3);
+    st.protocol_version = le::get_u16(d + 5);
+    st.uptime_s         = le::get_u32(d + 7);
+    st.fault_count      = le::get_u16(d + 11);
+    return true;
+}
+
 }}  // namespace EDM::psu
