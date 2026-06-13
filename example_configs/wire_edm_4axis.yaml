@@ -1,0 +1,250 @@
+# Microspark 4-Axis Wire-EDM machine configuration
+# ===================================================
+# Target board: PiBot FluidNC ESP32 GRBL Laser CNC Controller V4.96 Pro (classic ESP32).
+#
+# Axes: X, Y = lower wire guide (the master contour);  U, V = upper wire guide
+# (for taper / skew cuts). All four are independent Cartesian linear axes — FluidNC
+# supports X Y Z A B C U V W natively (Types.h: U_AXIS=6, V_AXIS=7), and Cartesian
+# kinematics maps them 1:1, so no custom kinematics is needed. v1 G-code supplies
+# XYUV poses directly; deriving U,V from XY + a taper angle is a CAM-side concern.
+#
+# The EDM spindle (registered as "EDM" by EdmSpindle.cpp) owns the gap servo, the
+# PSU CAN-FD link, and the wire feed + tension subsystem.
+#
+# !!! PINS BELOW ARE FROM THE PiBot V4.96 Pro pin audit and are MEDIUM-confidence.
+#     Every pin marked "VERIFY ON HARDWARE" must be checked against the board's
+#     schematic before energizing. See docs/superpowers/hardware-pinmap-pibot-v496pro.md
+#
+# Set this as the active config:  $Config/Filename=wire_edm_4axis.yaml  then $System/Control=RESTART
+
+name: "Microspark 4-Axis Wire-EDM"
+board: "PiBot V4.96 Pro"
+
+# PiBot drives its 6 stepper headers through an I2S shift-register chain, so the
+# stepping engine is I2S, not timed/RMT GPIO. (Engine choices: Timed, RMT, I2S_static,
+# I2S_stream.) I2S_stream gives the smoothest pulse train for the slow EDM feeds.
+stepping:
+  engine: I2S_stream
+  idle_ms: 250
+  pulse_us: 4
+  dir_delay_us: 1
+  disable_delay_us: 0
+
+# I2S shift-register output that drives all the stepper STEP/DIR/DISABLE lines.
+# VERIFY ON HARDWARE: the PiBot's actual bck/data/ws GPIO.
+i2so:
+  bck_pin: gpio.22
+  data_pin: gpio.21
+  ws_pin: gpio.17
+
+# SPI bus — shared by the SD card and the external MCP2518FD CAN-FD controller
+# (sub-project B's link to the PSU). VERIFY ON HARDWARE.
+spi:
+  miso_pin: gpio.19
+  mosi_pin: gpio.23
+  sck_pin: gpio.18
+
+sdcard:
+  cs_pin: gpio.5
+  frequency_hz: 8000000
+
+kinematics:
+  Cartesian:
+
+axes:
+  shared_stepper_disable_pin: NO_PIN
+  homing_runs: 1
+
+  # --- Lower guide X ---
+  x:
+    steps_per_mm: 400          # TUNE to the drivetrain (motor steps * microsteps / mm-per-rev)
+    max_rate_mm_per_min: 1500
+    acceleration_mm_per_sec2: 100
+    max_travel_mm: 300
+    soft_limits: true
+    homing:
+      cycle: 2
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 1000
+      feed_mm_per_min: 300
+    motor0:
+      limit_neg_pin: gpio.35:low   # VERIFY ON HARDWARE
+      limit_pos_pin: NO_PIN
+      hard_limits: false
+      pulloff_mm: 1.5
+      tmc_2209:
+        uart_num: 1
+        addr: 0
+        r_sense_ohms: 0.11
+        run_amps: 1.2
+        hold_amps: 0.5
+        microsteps: 16
+        run_mode: StealthChop
+        homing_mode: StealthChop
+        use_enable: false
+        direction_pin: i2so.1:low
+        step_pin: i2so.2
+        disable_pin: i2so.0
+
+  # --- Lower guide Y ---
+  y:
+    steps_per_mm: 400
+    max_rate_mm_per_min: 1500
+    acceleration_mm_per_sec2: 100
+    max_travel_mm: 300
+    soft_limits: true
+    homing:
+      cycle: 2
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 1000
+      feed_mm_per_min: 300
+    motor0:
+      limit_neg_pin: gpio.34:low   # VERIFY ON HARDWARE
+      limit_pos_pin: NO_PIN
+      hard_limits: false
+      pulloff_mm: 1.5
+      tmc_2209:
+        uart_num: 1
+        addr: 1
+        r_sense_ohms: 0.11
+        run_amps: 1.2
+        hold_amps: 0.5
+        microsteps: 16
+        run_mode: StealthChop
+        homing_mode: StealthChop
+        use_enable: false
+        direction_pin: i2so.4:low
+        step_pin: i2so.5
+        disable_pin: i2so.7
+
+  # --- Upper guide U (taper) ---
+  u:
+    steps_per_mm: 400
+    max_rate_mm_per_min: 1500
+    acceleration_mm_per_sec2: 100
+    max_travel_mm: 60            # upper-guide cross-travel is small (taper range)
+    soft_limits: true
+    homing:
+      cycle: 3
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 800
+      feed_mm_per_min: 200
+    motor0:
+      limit_neg_pin: gpio.39:low   # VERIFY ON HARDWARE
+      limit_pos_pin: NO_PIN
+      hard_limits: false
+      pulloff_mm: 1.0
+      tmc_2209:
+        uart_num: 1
+        addr: 2
+        r_sense_ohms: 0.11
+        run_amps: 1.0
+        hold_amps: 0.4
+        microsteps: 16
+        run_mode: StealthChop
+        homing_mode: StealthChop
+        use_enable: false
+        direction_pin: i2so.9:low
+        step_pin: i2so.10
+        disable_pin: i2so.8
+
+  # --- Upper guide V (taper) ---
+  v:
+    steps_per_mm: 400
+    max_rate_mm_per_min: 1500
+    acceleration_mm_per_sec2: 100
+    max_travel_mm: 60
+    soft_limits: true
+    homing:
+      cycle: 3
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 800
+      feed_mm_per_min: 200
+    motor0:
+      limit_neg_pin: gpio.36:low   # VERIFY ON HARDWARE
+      limit_pos_pin: NO_PIN
+      hard_limits: false
+      pulloff_mm: 1.0
+      tmc_2209:
+        uart_num: 1
+        addr: 3
+        r_sense_ohms: 0.11
+        run_amps: 1.0
+        hold_amps: 0.4
+        microsteps: 16
+        run_mode: StealthChop
+        homing_mode: StealthChop
+        use_enable: false
+        direction_pin: i2so.12:low
+        step_pin: i2so.13
+        disable_pin: i2so.15
+
+# The EDM "spindle": the gap servo + PSU CAN-FD link + wire feed/tension.
+# use_sim:true runs against the in-firmware SimPsuLink (no PSU board needed) so the
+# machine can be commissioned (motion, wire feed, UI) before the PSU exists.
+# M3 S<n> starts a cut and selects energy/mode; M5 stops. S-word bands:
+#   1..99 = ignite, 100..499 = finish, >=500 = rough.
+EDM:
+  tool_num: 0
+  use_sim: true
+  report_hz: 10
+  servo_kp: 8.0
+  servo_ki: 0.0          # 0 = pure-threshold bring-up profile; raise (e.g. 2.0) once the gap is stable
+  servo_deadband: 0.03
+  # NOTE: the PSU mode table (rough/finish/ignite -> SET_MODE_BOUNDS) and the CAN pin
+  # mapping (MCP2518FD cs/int) are wired in firmware phase P4; not yet YAML-parsed here.
+  wire_feed:
+    feed_motor:                       # motor header 5 (spare). VERIFY ON HARDWARE.
+      step_pin: i2so.18
+      dir_pin: i2so.17
+      disable_pin: i2so.16
+      steps_per_mm: 100.0             # capstan drivetrain; TUNE
+      default_feed_mm_min: 60.0
+      max_sps: 4000.0
+    tension_motor:                    # motor header 6 (spare). VERIFY ON HARDWARE.
+      step_pin: i2so.22
+      dir_pin: i2so.21
+      disable_pin: i2so.20
+      steps_per_mm: 100.0
+      min_sps: 0.0
+      max_sps: 4000.0
+      hold_sps: 200.0
+    tension_control:
+      ff_ratio: 1.0
+      setpoint_N: 5.0                 # ~5 N for 0.25 mm brass
+      kp: 40.0
+      ki: 8.0
+      alpha: 0.30
+      deadband_N: 0.25
+      pi_clamp_sps: 400.0
+      integ_bleed: 0.5
+    collapse:
+      threshold_N: 0.50
+      frac: 0.20
+      loaded_frac: 0.50
+      loaded_recent_ms: 200
+      debounce_ms: 30
+    load_cell:                        # HX711 on the load-cell pulley. VERIFY ON HARDWARE.
+      dout_pin: gpio.32               # any GPIO (input)
+      sck_pin: gpio.33                # output-capable; avoid strapping/input-only pins
+      channel_gain: 128
+      tare_offset: 0
+      scale_counts_per_N: 1000.0      # CALIBRATE with known masses
+    severity_tension_scale: [1.0, 0.85, 0.60, 0.0]
+    # NOTE: StepGen drives the wire-feed STEP pins from a hardware-timer ISR. If the
+    # I2SO step latency proves too coarse at high step rates on the bench, move the
+    # STEP pins to native GPIO (keep DIR/DISABLE on I2SO). Bench-decision (P3 §4.3).
+
+# EDM does not traverse like a mill: don't force homing before a job. Home manually
+# with $H when setting up; flip must_home to true once limit switches are trusted.
+start:
+  must_home: false
+
+# Slow, fine motion: a deep arc tolerance keeps EDM arcs smooth as polylines.
+arc_tolerance_mm: 0.002
+junction_deviation_mm: 0.01
+planner_blocks: 16
