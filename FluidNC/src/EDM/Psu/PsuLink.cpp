@@ -21,12 +21,15 @@ void CanPsuLink::stopCut()    { _bus.send(encodeControl(CTRL_STOP_CUT)); }
 void CanPsuLink::clearFault() { _bus.send(encodeControl(CTRL_CLEAR_FAULT)); }
 
 bool CanPsuLink::latestStats(StatsAgg& out) const {
+    // Copy the snapshot out under the lock; the caller reads it after we unlock.
+    EdmLockGuard g(_lock);
     if (!_stats_valid) return false;
     out = _stats;
     return true;
 }
 
 bool CanPsuLink::popEvent(Event& out) {
+    EdmLockGuard g(_lock);
     if (_events.empty()) return false;
     out = _events.front();
     _events.pop_front();
@@ -39,6 +42,12 @@ static void pushEvent(std::deque<Event>& q, size_t cap, const Event& e) {
 }
 
 void CanPsuLink::onFrame(const CanFrame& f) {
+    // Runs on the CAN-RX task. Guard the whole decode/store body: it writes
+    // _stats/_stats_valid, _heartbeat_seen/_protocol_ok/_last_ack_status and
+    // pushes _events, all of which the servo task reads concurrently. The
+    // decode helpers are pure (no I/O), so holding the spinlock for them is
+    // cheap and keeps the section short.
+    EdmLockGuard g(_lock);
     switch (f.id) {
         case ID_STATS_AGG:
             if (decodeStatsAgg(f, _stats)) _stats_valid = true;
