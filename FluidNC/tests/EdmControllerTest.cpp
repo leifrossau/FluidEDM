@@ -144,3 +144,24 @@ TEST(EdmController, PersistentShortStallFaults) {
     EXPECT_EQ(ctl.state(), EdmState::StallFault);
     EXPECT_EQ(ctl.fault(), FaultReason::ServoStall);
 }
+
+TEST(EdmController, ModeRestoresAfterWireBreakClears) {
+    SimPsuLink sim; sim.begin();
+    sim.setGap(sim.idealGapMm());
+    ServoConfig cfg; cfg.Ki = 2.0f; ModeTable modes = makeModes();
+    EdmController ctl(sim, cfg, modes);
+    ctl.requestCut(900);                                   // Rough (mode_id 1)
+    uint32_t t = 0;
+    for (int i = 0; i < 10; ++i) { sim.tick(); ctl.tick(t++); }
+    ASSERT_EQ(ctl.snapshot().active_mode_id, 1);
+
+    Event ev; ev.kind = Event::WireBreak; ev.wire_break.severity = 2;
+    sim.pushEvent(ev);
+    sim.tick(); ctl.tick(t++);
+    EXPECT_EQ(ctl.snapshot().active_mode_id, 2);           // sev2 lowered Rough -> Finish
+
+    // run past the wire-break clear window (default clear=500ms) at a healthy gap
+    for (int i = 0; i < 520; ++i) { sim.tick(); ctl.tick(t++); }
+    EXPECT_EQ(ctl.snapshot().active_mode_id, 1);           // restored to Rough
+    EXPECT_NE(ctl.state(), EdmState::Fault);
+}

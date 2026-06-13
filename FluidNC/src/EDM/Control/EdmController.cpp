@@ -139,6 +139,13 @@ void EdmController::tick(uint32_t now_ms) {
 
     if (_wire_break_sev > 0 && now_ms >= _sev_clear_after) {
         _wire_break_sev = 0; _feed_cap_mult = 1.0f;
+        // Restore the S-word cut mode that a sev2/sev3 break temporarily reduced
+        // (sev3 -> Ignite, sev2 -> lowerEnergy). Without this the cut would stay
+        // at reduced energy for the rest of the job. Only while actively cutting.
+        if (_state == EdmState::TouchOff || _state == EdmState::Cutting || _state == EdmState::Hold) {
+            _mode = _modes.modeForSword(_s_word);
+            maybeSendModeBounds();
+        }
     }
 
     GapServoOutput out;
