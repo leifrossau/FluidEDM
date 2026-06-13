@@ -166,6 +166,7 @@ void settings_restore(uint8_t restore_flag) {
 
 extern void make_settings();
 extern void make_user_commands();
+extern void make_edm_commands();  // EDM/EdmCommands.cpp (ESP32-only)
 
 void settings_init() {
     make_settings();
@@ -1078,6 +1079,11 @@ void make_user_commands() {
 
     new AsyncUserCommand("J", "Jog", doJog, notIdleOrJog);
     new AsyncUserCommand("G", "GCode/Modes", report_gcode, anyState);
+
+    // EDM (wire-EDM) runtime commands: $EDM/Status, $EDM/TouchOff,
+    // $EDM/Tension=<N>, $EDM/ResetWireFeed, $EDM/Mode=<name|S>. Defined in
+    // EDM/EdmCommands.cpp (ESP32-only; not in the native test build).
+    make_edm_commands();
 };
 
 // This is the handler for all forms of settings commands,

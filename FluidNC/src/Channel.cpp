@@ -8,6 +8,7 @@
 #include "Limit.h"
 #include "Logging.h"
 #include "Job.h"
+#include "EDM/EdmReportChannel.h"   // edm_auto_report (P4 EDM telemetry push)
 #include <string_view>
 #include <algorithm>
 
@@ -138,6 +139,12 @@ void Channel::autoReport() {
 
             _nextReportTime = xTaskGetTickCount() + _reportInterval;
             report_realtime_status(*this);
+
+            // P4: push EDM gap-servo telemetry alongside the normal status line,
+            // at the same _reportInterval cadence. No-op unless the EDM spindle is
+            // active, so this is safe for all machine profiles. The WebUI consumes
+            // the resulting [MSG:JSON:edm_update]{...} line.
+            edm_auto_report(*this);
         }
         if (_reportNgc != CoordIndex::End) {
             report_ngc_coord(_reportNgc, *this);
