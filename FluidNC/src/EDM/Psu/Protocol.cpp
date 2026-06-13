@@ -85,7 +85,7 @@ bool decodeFault(const CanFrame& f, Fault& flt) {
     flt.severity   = f.data[1];
     std::memset(flt.detail, 0, sizeof(flt.detail));
     uint8_t n = f.len > 8 ? 6 : uint8_t(f.len - 2);
-    std::memcpy(flt.detail, f.data + 2, n);
+    if (n > 0) std::memcpy(flt.detail, f.data + 2, n);  // guard: f.len may be exactly 2
     return true;
 }
 

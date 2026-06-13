@@ -42,6 +42,9 @@ public:
     virtual bool     isConnected() const = 0;        // heartbeat fresh
     virtual bool     protocolCompatible() const = 0; // version matches
     virtual uint16_t lastAckStatus() const = 0;      // 0 = ok / none
+    // TODO(P1): if the gap servo issues SET_MODE_BOUNDS at rate, match ACKs to
+    // their seq (AckModeBounds.seq is decoded but discarded). Add ack-by-seq
+    // tracking here when P1 decides whether callers must wait for an ack.
 };
 
 }}  // namespace EDM::psu
