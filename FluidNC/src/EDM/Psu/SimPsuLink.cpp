@@ -35,11 +35,11 @@ void SimPsuLink::tick() {
         fn = lerp(0.05f, 0.80f, t);
         fo = lerp(0.00f, 0.06f, t);
     } else {
-        float t = (r - 1.0f) / 2.0f; if (t > 1.0f) t = 1.0f;
+        float t = (r - 1.0f) / 3.0f; if (t > 1.0f) t = 1.0f;   // r in [1,4] -> t in [0,1]
         fs = lerp(0.06f, 0.00f, t);
-        fa = lerp(0.08f, 0.05f, t);
-        fn = lerp(0.80f, 0.15f, t);
-        fo = lerp(0.06f, 0.80f, t);
+        fa = lerp(0.08f, 0.01f, t);
+        fn = lerp(0.80f, 0.02f, t);
+        fo = lerp(0.06f, 0.97f, t);
     }
 
     int n_short  = int(fs * 100.0f + 0.5f);

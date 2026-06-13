@@ -48,13 +48,11 @@ TEST(EdmController, ClosedLoopReachesIdealGap) {
     ctl.requestCut(900);
     uint32_t t = 0;
     for (int i = 0; i < 5; ++i) { sim.tick(); ctl.tick(t++); }
-    // 1800 closed-loop iterations (now_ms ~= t). The loop converges to ideal by
-    // ~t=140 (Cutting) and holds. 1800 keeps now_ms below the point where the
-    // 2000 ms ServoStall watchdog would fire on a converged servo sitting in
-    // Hold (entered Hold ~t=140 => stall trips ~t=2140), so we observe sustained
-    // regulation without a spurious stall fault. Intent preserved: closed loop
-    // drives gap to ideal, no fault.
-    for (int i = 0; i < 1800; ++i) {
+    // 4000 closed-loop iterations (now_ms ~= t). The loop converges to ideal and
+    // holds in-band at a healthy gap. With the healthy-hold fix the ServoStall
+    // watchdog must NOT fire even though now_ms passes the 2000 ms stall window,
+    // because a balanced hold at a healthy gap resets the stall timer.
+    for (int i = 0; i < 4000; ++i) {
         EdmReport r = ctl.snapshot();
         sim.applyCommandedVelocity(r.v_cmd_um_s);
         sim.tick();
@@ -119,18 +117,7 @@ TEST(EdmController, TelemetryStaleHoldsThenFaults) {
     EXPECT_EQ(ctl.fault(), FaultReason::HeartbeatLost);
 }
 
-// NOTE (controller/sim threshold mismatch, reported, not a controller bug):
-// The lost-gap re-acquire in EdmController triggers on open_ratio > 0.95 for 5
-// consecutive windows. SimPsuLink's open_ratio (fo) saturates at ~0.80 even for
-// an arbitrarily wide gap (r >= 3): see SimPsuLink::tick() where the open-pulse
-// fraction lerps to a max of 0.80. So open_ratio > 0.95 is UNREACHABLE in the
-// sim and the lost-gap -> TouchOff transition cannot be exercised here. Per the
-// task guidance (option b), this test asserts the reachable, correct behavior
-// under a forced wide gap: the controller does NOT fault and keeps advancing
-// (positive feed) to chase the gap. A faithful lost-gap re-acquire test would
-// require either lowering the controller threshold toward the sim's achievable
-// open_ratio or extending the sim model to produce a near-1.0 open ratio.
-TEST(EdmController, LostGapKeepsAdvancingUnderWideGap) {
+TEST(EdmController, LostGapReentersTouchOff) {
     SimPsuLink sim; sim.begin();
     sim.setGap(sim.idealGapMm());
     ServoConfig cfg; cfg.Ki = 2.0f; ModeTable modes = makeModes();
@@ -138,15 +125,22 @@ TEST(EdmController, LostGapKeepsAdvancingUnderWideGap) {
     ctl.requestCut(900);
     uint32_t t = 0;
     for (int i = 0; i < 10; ++i) { sim.tick(); ctl.tick(t++); }
-    sim.setVelocityCoupling(0.0f);            // freeze gap so the wide condition persists
-    sim.setGap(sim.idealGapMm() * 5.0f);
-    bool advancing_every_window = true;
-    for (int i = 0; i < 8; ++i) {
-        sim.tick(); ctl.tick(t++);
-        if (ctl.snapshot().v_cmd_um_s <= 0) advancing_every_window = false;
-    }
-    EXPECT_NE(ctl.state(), EdmState::Fault);
-    EXPECT_NE(ctl.state(), EdmState::StallFault);
-    EXPECT_TRUE(advancing_every_window);                 // servo keeps feeding to close the gap
-    EXPECT_GT(ctl.snapshot().v_cmd_um_s, 0);
+    sim.setVelocityCoupling(0.0f);
+    sim.setGap(sim.idealGapMm() * 5.0f);     // r=5 -> open~0.97 > 0.95
+    for (int i = 0; i < 8; ++i) { sim.tick(); ctl.tick(t++); }
+    EXPECT_EQ(ctl.state(), EdmState::TouchOff);
+}
+
+TEST(EdmController, PersistentShortStallFaults) {
+    SimPsuLink sim; sim.begin();
+    sim.setVelocityCoupling(0.0f);   // retract cannot reopen the gap
+    sim.setGap(0.0f);                // wire touching workpiece -> persistent short
+    ServoConfig cfg; cfg.Ki = 2.0f; ModeTable modes = makeModes();
+    EdmController ctl(sim, cfg, modes);
+    ctl.requestCut(900);
+    uint32_t t = 0;
+    for (int i = 0; i < 5; ++i) { sim.tick(); ctl.tick(t++); }       // arm + touch-off + cutting
+    for (int i = 0; i < 2200; ++i) { sim.tick(); ctl.tick(t++); }    // persistent short > stall(2000ms)
+    EXPECT_EQ(ctl.state(), EdmState::StallFault);
+    EXPECT_EQ(ctl.fault(), FaultReason::ServoStall);
 }

@@ -162,10 +162,17 @@ void EdmController::tick(uint32_t now_ms) {
             } else { _lostgap_contig = 0; }
 
             bool advancing = out.v_cmd_mm_min > 0.0f;
+            // A balanced in-band hold at a HEALTHY gap is NOT a stall. Only accrue
+            // stall time when the gap is unhealthy (elevated short/arc) and we cannot advance.
+            bool healthy = in.valid &&
+                           in.short_ratio <= _servo.config().short_ref * 2.0f &&
+                           in.arc_ratio   <= _servo.config().arc_brake;
             if (out.state == ServoState::Hold || out.state == ServoState::ArcHold || out.v_cmd_mm_min <= 0.0f) {
                 if (_state == EdmState::Cutting) { _state = EdmState::Hold; _stall_since = now_ms; }
-                if (!advancing && (now_ms - _stall_since) > _t.stall &&
-                    (out.state == ServoState::Retract || out.state == ServoState::Hold)) {
+                if (healthy) {
+                    _stall_since = now_ms;   // regulating fine at a good gap; reset the stall timer
+                } else if (!advancing && (now_ms - _stall_since) > _t.stall &&
+                           (out.state == ServoState::Retract || out.state == ServoState::Hold)) {
                     _link.stopCut(); _state = EdmState::StallFault; _fault = FaultReason::ServoStall;
                 }
             } else if (_state == EdmState::Hold) {
