@@ -493,8 +493,14 @@ class FluidEdmClient {
   }
   _rx(data){
     if(typeof data!=="string") return;
-    const m = data.match(/\[MSG:JSON:edm_update\](\{.*\})/);
-    if(m){ try{ this.onReport(JSON.parse(m[1])); }catch(_){} return; }
+    // FluidNC's core JSON encoder hardcodes the "JSON:" prefix and does not surface
+    // the per-message tag on the WebSocket path, so the firmware emits
+    // [MSG:JSON:...]{...,"type":"edm_update",...} and we route on the embedded "type"
+    // (or the presence of controller_state) rather than the exact bracket tag.
+    const m = data.match(/\[MSG:JSON[^\]]*\](\{.*\})/);
+    if(m){ try{ const o=JSON.parse(m[1]);
+      if(o.type==="edm_update"||o.type==="edm_full_status"||o.controller_state!==undefined) this.onReport(o);
+    }catch(_){} return; }
     // (status "<...>" parsing for MPos/state would go here)
   }
   send(cmd){ if(this.live&&this.ws) this.ws.send(cmd+"\n"); this.onLog("» "+cmd,"m"); }
