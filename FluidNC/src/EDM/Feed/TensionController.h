@@ -64,6 +64,10 @@ public:
     explicit TensionController(const TensionConfig& c) : _c(c) {}
     TensionOutput step(const TensionState& s, const TensionInput& in) const;
     const TensionConfig& config() const { return _c; }
+    // Runtime setpoint override (used by the `$EDM/Tension=<N>` command in P4).
+    // Additive accessor; does not change step() behavior for a fixed setpoint.
+    void  setSetpointN(float n) { _c.setpoint_N = n; }
+    float setpointN() const     { return _c.setpoint_N; }
     static TensionState reset() { return TensionState{}; }
 private:
     TensionConfig _c;

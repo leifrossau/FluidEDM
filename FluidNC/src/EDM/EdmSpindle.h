@@ -38,6 +38,10 @@ public:
 
     EDM::EdmController* controller() const { return _ctl.get(); }
 
+    // Wire feed (null when no wire_feed: YAML section was parsed). Used by the
+    // $EDM/Tension and $EDM/ResetWireFeed commands and by EdmReportChannel.
+    EDM::feed::WireFeed* wireFeed() const { return _feed.get(); }
+
     ~EdmSpindle() {}
 
 private:

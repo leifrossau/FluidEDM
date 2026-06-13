@@ -106,6 +106,15 @@ public:
     // `$EDM/ResetWireFeed` command (and M5+re-arm re-runs begin(), which also resets).
     void resetCollapse() { _state = TensionController::reset(); }
 
+    // --- P4 telemetry / command surface (consumed by EdmReportChannel + $EDM/*) ---
+    // Live measured wire tension (N), last sampled by tick().
+    float tensionN() const         { return _last_N; }
+    // Active tension setpoint (N); settable at runtime via `$EDM/Tension=<N>`.
+    float tensionSetpointN() const { return _controller.setpointN(); }
+    void  setTensionSetpointN(float n) { _controller.setSetpointN(n); }
+    // True while a mechanical tension collapse is latched (feed e-stopped).
+    bool  tensionCollapsed() const { return _state.collapse_latched; }
+
 private:
     TensionController  _controller { TensionConfig {} };
     TensionState       _state;
