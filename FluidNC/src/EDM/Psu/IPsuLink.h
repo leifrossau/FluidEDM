@@ -5,13 +5,19 @@
 
 namespace EDM { namespace psu {
 
-// One queued asynchronous event from the PSU.
+// One queued asynchronous event from the PSU. Only the union member matching
+// `kind` is valid.
 struct Event {
     enum Kind : uint8_t { WireBreak, FaultEvt, ArcBurstEvt, Info } kind;
-    WireBreakImminent wire_break;
-    Fault             fault;
-    ArcBurst          arc_burst;
-    char              info[61];
+    union {
+        WireBreakImminent wire_break;
+        Fault             fault;
+        ArcBurst          arc_burst;
+        char              info[61];
+    };
+    // Union members have in-class initializers, so the implicit default ctor is
+    // deleted. Provide an empty one (caller sets `kind` then the active member).
+    Event() {}
 };
 
 // Interface the EdmController depends on. Implemented by CanPsuLink (real)
