@@ -6,6 +6,7 @@
 #include "WireFeed.h"
 
 #include "EDM/Control/EdmController.h"
+#include "NutsBolts.h"  // get_ms
 
 #include <utility>  // std::move
 
@@ -121,7 +122,8 @@ void WireFeed::begin(EDM::EdmController* ctl, WireFeedConfig& cfg) {
                           3);
     }
 
-    _last_ms = 0;
+    // Seed the clock so the first tick() yields a small dt (not the whole uptime).
+    _last_ms = get_ms();
 }
 
 void WireFeed::tick(uint32_t now_ms) {
@@ -165,11 +167,11 @@ void WireFeed::tick(uint32_t now_ms) {
 
     // 6) Feed DISABLE as a true e-stop: cut power to the feed axis on a severe
     //    wire break or a detected tension collapse; otherwise re-enable while cutting.
+    // Collapse latches in TensionState (o.tension_collapse stays true until
+    // resetCollapse()), so once tripped the feed stays disabled — the intended
+    // safety behavior for a physically broken wire.
     if (sev >= 3 || o.tension_collapse) {
         _feedGen.enable(false);
-        if (o.tension_collapse) {
-            _collapse_sticky = true;
-        }
     } else if (cutting) {
         _feedGen.enable(true);
     }

@@ -100,6 +100,12 @@ public:
     // One control step (~83 Hz from the wire-feed task).
     void tick(uint32_t now_ms);
 
+    // A detected mechanical wire-tension collapse LATCHES (feed stays DISABLED):
+    // this is a safety stop — the wire has physically broken/slackened, so we never
+    // auto-recover. Recovery is a deliberate operator action; P4 wires this to an
+    // `$EDM/ResetWireFeed` command (and M5+re-arm re-runs begin(), which also resets).
+    void resetCollapse() { _state = TensionController::reset(); }
+
 private:
     TensionController  _controller { TensionConfig {} };
     TensionState       _state;
@@ -111,7 +117,6 @@ private:
     uint32_t _last_ms        = 0;
     int32_t  _last_raw       = 0;
     float    _last_N         = 0.0f;
-    bool     _collapse_sticky = false;
 };
 
 }}  // namespace EDM::feed
