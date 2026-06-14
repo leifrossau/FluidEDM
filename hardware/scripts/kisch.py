@@ -153,6 +153,17 @@ class SymDef:
         self.raw = block
         self.pins = extract_pins(block)
 
+    def pin_number(self, spec):
+        """Resolve a pin spec (number OR pin name) to its pin-number string."""
+        spec = str(spec)
+        for p in self.pins:
+            if p["number"] == spec:
+                return spec
+        for p in self.pins:
+            if p["name"] == spec:
+                return p["number"]
+        raise KeyError("%s has no pin %r" % (self.lib_id, spec))
+
     def embed(self):
         """Raw block re-named for lib_symbols: child unit sub-symbols `<src>_u_s` ->
         `<name>_u_s`, then the top-level symbol -> full lib_id. (When the symbol was

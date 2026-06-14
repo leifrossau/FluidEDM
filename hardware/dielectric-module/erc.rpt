@@ -1,0 +1,282 @@
+ERC report (2026-06-14T23:55:44, Encoding UTF8)
+Report includes: Errors, Warnings
+
+***** Sheet /
+[pin_not_connected]: Pin not connected
+    ; error
+    @(14.76 mm, 47.78 mm): Symbol U1 Pin 22 [IO14, Bidirectional, Line]
+[power_pin_not_driven]: Input Power pin not driven by any Output Power pins
+    ; error
+    @(24.92 mm, 64.00 mm): Symbol Q7 Pin 1 [G, Input, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 7.14 mm): Symbol U1 Pin 37 [TXD0, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 9.68 mm): Symbol U1 Pin 36 [RXD0, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 24.92 mm): Symbol U1 Pin 28 [IO35, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 27.46 mm): Symbol U1 Pin 29 [IO36, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 30.00 mm): Symbol U1 Pin 30 [IO37, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 32.54 mm): Symbol U1 Pin 31 [IO38, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 35.08 mm): Symbol U1 Pin 32 [IO39, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 37.62 mm): Symbol U1 Pin 33 [IO40, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 40.16 mm): Symbol U1 Pin 34 [IO41, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 42.70 mm): Symbol U1 Pin 35 [IO42, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 45.24 mm): Symbol U1 Pin 26 [IO45, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 47.78 mm): Symbol U1 Pin 16 [IO46, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(45.24 mm, 52.86 mm): Symbol U1 Pin 25 [IO48, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(95.84 mm, 64.00 mm): Symbol U4 Pin 5 [PG, Input, Line]
+[pin_not_driven]: Input pin not driven by any Output pins
+    ; error
+    @(95.84 mm, 64.00 mm): Symbol U4 Pin 5 [PG, Input, Line]
+[power_pin_not_driven]: Input Power pin not driven by any Output Power pins
+    ; error
+    @(95.84 mm, 66.54 mm): Symbol U4 Pin 1 [EN, Input, Line]
+[pin_not_driven]: Input pin not driven by any Output pins
+    ; error
+    @(166.76 mm, 105.62 mm): Symbol U2 Pin 6 [OSC1, Input, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(176.92 mm, 205.08 mm): Symbol J6 Pin 4 [Pin_4, Passive, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(197.24 mm, 95.46 mm): Symbol U2 Pin 3 [CLKO/SOF, Output, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(197.24 mm, 103.08 mm): Symbol U2 Pin 9 [~{INT0}/GPIO0/XSTBY, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(197.24 mm, 105.62 mm): Symbol U2 Pin 8 [~{INT1}/GPIO1, Bidirectional, Line]
+[pin_not_connected]: Pin not connected
+    ; error
+    @(214.92 mm, 205.08 mm): Symbol J7 Pin 5 [Pin_5, Passive, Line]
+[power_pin_not_driven]: Input Power pin not driven by any Output Power pins
+    ; error
+    @(220.00 mm, 87.84 mm): Symbol U3 Pin 3 [VCC, Power input, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(30.00 mm, 57.94 mm): Symbol U1 Pin 1 [GND, Power input, Line]
+[lib_symbol_mismatch]: Symbol 'AO3401A' matcher ikke kopi i biblioteket 'Transistor_FET'
+    ; warning
+    @(30.00 mm, 64.00 mm): Symbol Q7 [AO3401A]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(30.00 mm, 94.19 mm): Symbol R8 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(30.00 mm, 128.19 mm): Symbol R3 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(30.00 mm, 162.19 mm): Symbol Rg3 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(30.00 mm, 196.19 mm): Symbol Rb4 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(30.00 mm, 230.19 mm): Symbol Rl1 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(32.54 mm, 69.08 mm): Symbol Q7 Pin 2 [S, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(62.92 mm, 134.54 mm): Symbol J2 Pin 3 [Pin_3, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(64.19 mm, 64.00 mm): Symbol D5 Pin 1 [K, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(64.19 mm, 166.00 mm): Symbol D1 Pin 1 [K, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(68.00 mm, 26.19 mm): Symbol C1 Pin 1 [Passive, Line]
+[lib_symbol_mismatch]: Symbol 'AMS1117-3.3' matcher ikke kopi i biblioteket 'Regulator_Linear'
+    ; warning
+    @(68.00 mm, 98.00 mm): Symbol U5 [AMS1117-3.3]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(68.00 mm, 105.62 mm): Symbol U5 Pin 1 [GND, Power input, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(68.00 mm, 196.19 mm): Symbol Rb5 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(68.00 mm, 230.19 mm): Symbol Rl2 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(100.92 mm, 129.46 mm): Symbol J3 Pin 2 [Pin_2, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(106.00 mm, 26.19 mm): Symbol C2 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(106.00 mm, 101.81 mm): Symbol C7 Pin 2 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(106.00 mm, 196.19 mm): Symbol Rb6 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(106.00 mm, 230.19 mm): Symbol Rc1 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(109.81 mm, 166.00 mm): Symbol D2 Pin 2 [A, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(116.16 mm, 66.54 mm): Symbol U4 Pin 6 [FB, Input, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(138.92 mm, 200.00 mm): Symbol J5 Pin 3 [Pin_3, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(140.19 mm, 166.00 mm): Symbol D3 Pin 1 [K, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(144.00 mm, 33.81 mm): Symbol R1 Pin 2 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(144.00 mm, 67.81 mm): Symbol L1 Pin 2 [2, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(144.00 mm, 94.19 mm): Symbol C8 Pin 1 [Passive, Line]
+[lib_symbol_mismatch]: Symbol 'AO3400A' matcher ikke kopi i biblioteket 'Transistor_FET'
+    ; warning
+    @(144.00 mm, 132.00 mm): Symbol Q1 [AO3400A]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(144.00 mm, 230.19 mm): Symbol Rc2 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(146.54 mm, 126.92 mm): Symbol Q1 Pin 3 [D, Passive, Line]
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(166.76 mm, 103.08 mm): Global Label 'OSC2'
+[isolated_pin_label]: Label connected to only one pin
+    ; warning
+    @(166.76 mm, 105.62 mm): Global Label 'OSC1'
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(176.92 mm, 132.00 mm): Symbol Q2 Pin 1 [G, Input, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(176.92 mm, 163.46 mm): Symbol J4 Pin 2 [Pin_2, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(176.92 mm, 202.54 mm): Symbol J6 Pin 3 [Pin_3, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(178.19 mm, 64.00 mm): Symbol D6 Pin 1 [K, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(182.00 mm, 33.81 mm): Symbol C3 Pin 2 [Passive, Line]
+[lib_symbol_mismatch]: Symbol 'MCP2518FD-xQBB' matcher ikke kopi i biblioteket 'Interface_CAN_LIN'
+    ; warning
+    @(182.00 mm, 98.00 mm): Symbol U2 [MCP2518FD-xQBB]
+[lib_symbol_mismatch]: Symbol 'AO3400A' matcher ikke kopi i biblioteket 'Transistor_FET'
+    ; warning
+    @(182.00 mm, 132.00 mm): Symbol Q2 [AO3400A]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(182.00 mm, 237.81 mm): Symbol R4 Pin 2 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(197.24 mm, 100.54 mm): Symbol U2 Pin 4 [~{INT}, Output, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(207.30 mm, 100.54 mm): Symbol U3 Pin 5 [VIO, Power input, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(214.92 mm, 205.08 mm): Symbol J7 Pin 5 [Pin_5, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(214.92 mm, 231.46 mm): Symbol J8 Pin 2 [Pin_2, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(220.00 mm, 33.81 mm): Symbol R2 Pin 2 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(220.00 mm, 60.19 mm): Symbol C5 Pin 1 [Passive, Line]
+[lib_symbol_mismatch]: Symbol 'AO3400A' matcher ikke kopi i biblioteket 'Transistor_FET'
+    ; warning
+    @(220.00 mm, 132.00 mm): Symbol Q3 [AO3400A]
+[lib_symbol_mismatch]: Symbol 'AO3400A' matcher ikke kopi i biblioteket 'Transistor_FET'
+    ; warning
+    @(220.00 mm, 166.00 mm): Symbol Q4 [AO3400A]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(222.54 mm, 137.08 mm): Symbol Q3 Pin 2 [S, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(222.54 mm, 171.08 mm): Symbol Q4 Pin 2 [S, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(258.00 mm, 26.19 mm): Symbol C4 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(258.00 mm, 67.81 mm): Symbol C6 Pin 2 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(258.00 mm, 101.81 mm): Symbol C9 Pin 2 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(258.00 mm, 135.81 mm): Symbol Rg1 Pin 2 [Passive, Line]
+[lib_symbol_mismatch]: Symbol 'AO3400A' matcher ikke kopi i biblioteket 'Transistor_FET'
+    ; warning
+    @(258.00 mm, 166.00 mm): Symbol Q5 [AO3400A]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(258.00 mm, 203.81 mm): Symbol Rp1 Pin 2 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(260.54 mm, 171.08 mm): Symbol Q5 Pin 2 [S, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(290.92 mm, 30.00 mm): Symbol J1 Pin 1 [Pin_1, Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(296.00 mm, 60.19 mm): Symbol R7 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(296.00 mm, 94.19 mm): Symbol C10 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(296.00 mm, 128.19 mm): Symbol Rg2 Pin 1 [Passive, Line]
+[lib_symbol_mismatch]: Symbol 'AO3400A' matcher ikke kopi i biblioteket 'Transistor_FET'
+    ; warning
+    @(296.00 mm, 166.00 mm): Symbol Q6 [AO3400A]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(296.00 mm, 196.19 mm): Symbol Rp2 Pin 1 [Passive, Line]
+[endpoint_off_grid]: Symbol pin or wire end off connection grid
+    ; warning
+    @(298.54 mm, 160.92 mm): Symbol Q6 Pin 3 [D, Passive, Line]
+
+ ** ERC messages: 90  Errors 25  Warnings 65
+
+ ** Ignored checks:
+    - Global label only appears once in the schematic
+    - Four connection points are joined together
+    - SPICE model issue
+    - Assigned footprint doesn't match footprint filters

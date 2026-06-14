@@ -27,6 +27,7 @@ class Board:
         self.nets = {}          # name -> NETINFO_ITEM
         self.fps = {}           # ref  -> FOOTPRINT
         self._assignments = []  # (ref, pad, net) for the review table
+        self._skipped = []      # (ref, pad, net) pins with no matching pad (e.g. EP)
 
     # ---- nets ----
     def net(self, name):
@@ -37,7 +38,7 @@ class Board:
         return self.nets[name]
 
     # ---- components ----
-    def add(self, ref, value, lib, fp, x, y, rot=0):
+    def add(self, ref, value, lib, fp, x, y, rot=0, uuid=None):
         path = os.path.join(FP_ROOT, lib + ".pretty") if not lib.endswith(".pretty") \
             else os.path.join(FP_ROOT, lib)
         footprint = pcbnew.FootprintLoad(path, fp)
@@ -48,11 +49,16 @@ class Board:
         footprint.SetPosition(V(x, y))
         if rot:
             footprint.SetOrientationDegrees(rot)
+        if uuid:  # link to the schematic symbol of the same UUID (Update-PCB-from-Sch)
+            try:
+                footprint.SetPath(pcbnew.KIID_PATH("/" + uuid))
+            except Exception as e:
+                print("  (SetPath failed for %s: %s)" % (ref, e))
         self.b.Add(footprint)
         self.fps[ref] = footprint
         return footprint
 
-    def connect(self, ref, pad_name, net_name):
+    def connect(self, ref, pad_name, net_name, soft=False):
         fp = self.fps[ref]
         ni = self.net(net_name)
         hit = False
@@ -61,6 +67,9 @@ class Board:
                 pad.SetNet(ni)
                 hit = True
         if not hit:
+            if soft:
+                self._skipped.append((ref, str(pad_name), net_name))
+                return
             raise RuntimeError("pad %s not found on %s" % (pad_name, ref))
         self._assignments.append((ref, str(pad_name), net_name))
 

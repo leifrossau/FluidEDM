@@ -21,25 +21,37 @@ Each board dir has: `DESIGN.md` (the engineering), `generate_board.py` (regenera
 `*.kicad_pro/.kicad_pcb` (the KiCad project — open in **KiCad 10**, not 9), `*.netlist.csv`
 (pad→net review table), `*.bom.csv`, and `*.placement.pdf` (a rendered view).
 
+## Workflow: schematic-first (linked)
+The **dielectric board** is generated schematic-first (option A): one shared source model
+(`generate.py`, the `PARTS` + `NETS` tables) emits BOTH the `.kicad_sch` (source of truth)
+and the `.kicad_pcb`, with each footprint carrying the **same UUID** as its schematic symbol —
+so the two are linked and "Update PCB from Schematic" / ERC are meaningful. ICs are wired by
+**pin name** resolved against the real library symbol (authoritative pinouts, e.g. MCP2518FD
+SCK=10/SDI=11/SDO=12/CS=13), the ESP32 by GPIO name. Connectivity in the schematic is
+**global-label-per-pin** — ERC-valid and netlist-correct, but a flat "label wall", not a
+hand-drawn schematic; prettify wiring in eeschema if desired. The toolkit is `scripts/kisch.py`
+(schematic) + `scripts/kizen.py` (PCB). The **PSU board** is still the earlier PCB-only scaffold.
+
 ## What is done vs. what's left
-**Done (autonomously):** architecture + part selection, board outline, every component placed by
-functional block, the complete **netlist/ratsnest** to route against, copper-pour outlines,
-mounting holes, DRC + PDF render, BOM.
+**Done (autonomously):** architecture + part selection, a **linked schematic + PCB** (dielectric),
+real-symbol pinouts, board outline, block placement, complete netlist/ratsnest, copper-pour
+outlines, mounting, ERC + DRC + schematic/PCB PDFs, BOM.
 
 **Left (needs the KiCad GUI / a human):**
-- **Schematic capture** — there is no Python API for `.kicad_sch`; capture from each `DESIGN.md`
-  + the `netlist.csv` (fast), or work the PCB directly. This also enables ERC + "update PCB from schematic".
 - **Routing** — nothing is routed (the ratsnest shows all connections). DRC's "unconnected" count is expected.
-- **Pin-map verification** — IC pin assignments are best-effort and stamped "verify" in the code;
-  confirm against datasheets (ESP32-S3-WROOM-1, MCP2518FD, STM32G474, isolators) during capture.
+- **ERC nags** — the generated schematic leaves benign warnings: unused-GPIO `pin_not_connected`
+  (add no-connect flags), `power_pin_not_driven` (add `PWR_FLAG`s), and `lib_symbol_mismatch`
+  (the embedded symbols differ slightly from the library cache — "Update Symbols from Library").
 - **Placement polish** — remaining DRC items are mostly silkscreen-label overlaps + courtyard
   nudges + default drill-rule flags on the big mount/terminal holes; resolve while routing.
+- **A few [REVIEW] part choices** — buck `AP3402`, reverse-FET `AO3401A`, and the programming
+  header replacing USB-C (pad-mapping); confirm against the BOM you intend to buy.
 - **Pour fill** — zones are left unfilled (headless `ZONE_FILLER` segfaults); press **B** in pcbnew.
 
 ## Regenerate a board
 ```powershell
-& "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\dielectric-module\generate_board.py
-& "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\psu-board\generate_board.py
+& "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\dielectric-module\generate.py        # schematic + linked PCB
+& "C:\Program Files\KiCad\10.0\bin\python.exe" hardware\psu-board\generate_board.py           # PCB scaffold only
 ```
 Render / check (kicad-cli):
 ```powershell
