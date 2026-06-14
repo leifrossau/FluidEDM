@@ -48,10 +48,15 @@ constexpr std::array<const char*, 5> kServoStateNames = {
 };
 
 // FaultReason (EDM/Servo/FaultReason.h): index 0 == None (-> JSON null).
-constexpr std::array<const char*, 8> kFaultNames = {
+// Keep in lock-step with the enum (appended-only); the static_assert below trips
+// the build if a new FaultReason is added without a name here.
+constexpr std::array<const char*, 10> kFaultNames = {
     "None", "AckTimeout", "ProtocolMismatch", "TouchOffNoContact",
-    "ServoStall", "HeartbeatLost", "PsuFault", "SensorDisagree"
+    "ServoStall", "HeartbeatLost", "PsuFault", "SensorDisagree",
+    "DielectricNotReady", "DielectricLost"
 };
+static_assert(kFaultNames.size() == static_cast<size_t>(FaultReason::DielectricLost) + 1,
+              "kFaultNames is out of sync with enum FaultReason");
 
 // "tag": <int>  (bare number, no quotes)
 void num(JSONencoder& j, const char* tag, int32_t v) {

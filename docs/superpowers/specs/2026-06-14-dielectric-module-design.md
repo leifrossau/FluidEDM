@@ -120,7 +120,7 @@ public:
 ### 5.2 `EdmController` interlock + telemetry
 - Add an **optional** link: `void attachDielectric(EDM::diel::IDielLink* d);` (null = no module configured → no gating).
 - **Ready-to-cut gate** at the `Armed → TouchOff` transition (`EdmController.cpp:123-133`): also require `dielReadyToCut()`. If a module is attached and `required`, that means `present() && flow_clpm ≥ flow_min && level_pct ≥ level_min`. If not ready by `_arm_deadline` → `enterFault(FaultReason::DielectricNotReady)`.
-- **Mid-cut loss**: while `Cutting`/`Hold`/`TouchOff`, if attached+required and flow/level drop below the floor → `enterFault(FaultReason::DielectricLost)` (feed-hold + `stopCut()`).
+- **Mid-cut loss**: while `Cutting`/`Hold`/`BreakRelief` (NOT `TouchOff` — the gap-approach phase is still ramping flow and the `Armed→TouchOff` gate already required flow OK, so checking there would false-trip), if attached+required and flow/level drop below the floor → `enterFault(FaultReason::DielectricLost)` (feed-hold + `stopCut()`).
 - **Conductivity** over `conductivity_warn_uS` sets a report warning flag only (no fault).
 - Each `tick()`, poll `_diel->latestStats()` and populate `_report.diel_*`.
 - New `FaultReason` values: `DielectricNotReady`, `DielectricLost`.

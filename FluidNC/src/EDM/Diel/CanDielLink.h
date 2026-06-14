@@ -13,6 +13,10 @@ public:
   uint16_t setDiel(const SetDiel& s) override;
   bool latestStats(DielStats& out) const override;
   bool popEvent(DielEvent& out) override;
+  // TODO(P2): like CanPsuLink, _heartbeat_seen latches and never expires. Track the
+  // last-status timestamp so isConnected()/present() go false when the module goes
+  // silent; until then the EdmController mid-cut interlock relies on flow/level loss
+  // (dielReadyToCut) to catch a dead module rather than on present().
   bool isConnected() const override        { return _heartbeat_seen; }
   bool protocolCompatible() const override { return _protocol_ok; }
   bool present() const override            { return _heartbeat_seen; }
