@@ -4,6 +4,7 @@
 namespace EDM {
 enum class FaultReason : uint8_t {
     None, AckTimeout, ProtocolMismatch, TouchOffNoContact,
-    ServoStall, HeartbeatLost, PsuFault, SensorDisagree
+    ServoStall, HeartbeatLost, PsuFault, SensorDisagree,
+    DielectricNotReady, DielectricLost
 };
 }

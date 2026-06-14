@@ -6,6 +6,7 @@
 #include "EDM/Servo/ModeTable.h"
 #include "EDM/Servo/FaultReason.h"
 #include "EDM/Servo/EdmReport.h"
+#include "EDM/Diel/IDielLink.h"
 
 namespace EDM {
 
@@ -32,6 +33,16 @@ public:
     EdmState reportedState() const { return EdmState(_report.controller_state); }
     uint8_t feedCapPct()        const { return _report.feed_cap_pct; }   // 0..100
     uint8_t wireBreakSeverity() const { return _report.wire_break_sev; } // 0..3
+
+    // ---- dielectric interlock (sub-project D) ----
+    struct DielInterlock {
+        bool     required = false;
+        uint16_t flow_min_clpm = 100;
+        uint8_t  level_min_pct = 15;
+        uint16_t conductivity_warn_uS = 20;
+    };
+    void attachDielectric(EDM::diel::IDielLink* d, const DielInterlock& cfg) { _diel = d; _dielCfg = cfg; }
+    void attachDielectric(EDM::diel::IDielLink* d) { _diel = d; _dielCfg = DielInterlock{}; }
 private:
     EDM::servo::GapServoInput buildInput(const EDM::psu::StatsAgg& s, bool fresh);
     void drainEvents();
@@ -64,6 +75,9 @@ private:
     EDM::psu::SetModeBounds _last_sent{};
     bool     _have_sent = false;
     EdmReport _report{};
+    bool dielReadyToCut(const EDM::diel::DielStats& s) const;
+    EDM::diel::IDielLink* _diel = nullptr;
+    DielInterlock        _dielCfg;
 };
 
 }  // namespace EDM
