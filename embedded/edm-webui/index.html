@@ -265,6 +265,19 @@
   .toast.warn{--accentc:var(--arc)} .toast.bad{--accentc:var(--fault)}
   @keyframes toastin{from{opacity:0; transform:translateX(36px)}to{opacity:1; transform:none}}
   @keyframes toastout{to{opacity:0; transform:translateX(36px); max-height:0; margin-bottom:-10px; padding-top:0; padding-bottom:0}}
+
+  /* connected-computer details (click the Workbench chip) */
+  #wbchip{cursor:pointer}
+  #wbtxt{max-width:160px; overflow:hidden; text-overflow:ellipsis}
+  #wbcaret{font-size:8px; color:var(--faint); margin-left:1px}
+  #wbinfo{position:fixed; top:60px; right:18px; z-index:62; width:286px; max-width:calc(100vw - 36px); display:none;
+    background:linear-gradient(180deg,#171c24,#11151b); border:1px solid var(--line2); border-radius:12px; padding:14px 16px; box-shadow:0 14px 40px rgba(0,0,0,.55)}
+  #wbinfo.show{display:block; animation:rise .22s cubic-bezier(.2,.8,.2,1) forwards}
+  #wbinfo .wbi-h{display:flex; align-items:center; gap:9px; margin-bottom:10px}
+  #wbinfo .wbi-h b{font-family:var(--disp); font-weight:600; letter-spacing:.04em; flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  #wbinfo .wbi-h .x{font-family:var(--mono); color:var(--faint); cursor:pointer}
+  #wbinfo .wbi-h .x:hover{color:var(--text)}
+  #wbinfo .none{color:var(--muted); font-family:var(--mono); font-size:12px; text-align:center; padding:6px 0}
 </style>
 </head>
 <body>
@@ -284,7 +297,7 @@
       </div>
     </div>
     <div class="grow"></div>
-    <span class="chip" id="wbchip" title="Microspark Workbench desktop app"><span class="dot" id="wbdot"></span><span id="wbtxt">Workbench</span></span>
+    <span class="chip" id="wbchip" title="Microspark Workbench — click for connected computer"><span class="dot" id="wbdot"></span><span id="wbtxt">Workbench</span><span id="wbcaret">▾</span></span>
     <span class="chip" id="connchip"><span class="dot" id="conndot"></span><span id="conntxt">Link…</span></span>
     <span class="chip" id="statechip"><span class="dot" id="statedot"></span><span id="statetxt">—</span></span>
     <div class="modeswitch" id="modeswitch">
@@ -493,6 +506,19 @@
 
 <div id="toasts"></div>
 
+<!-- connected-computer details (Microspark Workbench identity, self-reported on connect) -->
+<div id="wbinfo">
+  <div class="wbi-h"><span class="dot" id="wbi_dot"></span><b id="wbi_host">—</b><span class="x" id="wbi_x">✕</span></div>
+  <div id="wbi_body">
+    <div class="kv"><span class="label">IP address</span><span class="v" id="wbi_ip">—</span></div>
+    <div class="kv"><span class="label">Operating system</span><span class="v" id="wbi_os">—</span></div>
+    <div class="kv"><span class="label">Workbench app</span><span class="v" id="wbi_app">—</span></div>
+    <div class="kv"><span class="label">Operator</span><span class="v" id="wbi_user">—</span></div>
+    <div class="kv"><span class="label">Connected for</span><span class="v" id="wbi_since">—</span></div>
+  </div>
+  <div class="none" id="wbi_none" style="display:none">No computer connected to the machine.</div>
+</div>
+
 <!-- operator passcode -->
 <div class="modal" id="pinmodal">
   <div class="box">
@@ -560,7 +586,11 @@ class MockMachine {
   constructor(emit){
     this.emit=emit; this.reset();
     this.tensionSet=5.0; this.modeS=300; this.mode_id=2;
-    this.wb={connected:false}; this.onWorkbench=null; this._wbCd=2.2;  // Workbench connects ~2s in
+    // Workbench connects ~2s in. Identity is what the desktop app self-reports on its
+    // "hello" handshake (the firmware can only see the socket's IP, not the hostname).
+    this.wb={connected:false, host:"MS-WORKBENCH-PC", ip:"192.168.4.23", os:"Windows 11 Pro (24H2)",
+             app:"Microspark Workbench v2.3.1", user:"shop-floor", since:0};
+    this.onWorkbench=null; this._wbCd=2.2;
   }
   reset(){
     this.run=false; this.paused=false; this.s=0; this.L=100; this.fault=null;
@@ -602,7 +632,7 @@ class MockMachine {
     // --- Microspark Workbench presence + activity ---
     this._wbCd-=dt;
     if(!this.wb.connected){
-      if(this._wbCd<=0){ this.wb.connected=true; this._wbCd=16+Math.random()*12; this.onWorkbench&&this.onWorkbench("connect"); }
+      if(this._wbCd<=0){ this.wb.connected=true; this.wb.since=Date.now(); this._wbCd=16+Math.random()*12; this.onWorkbench&&this.onWorkbench("connect", this.wb.host); }
     } else if(this._wbCd<=0){
       this._wbCd=14+Math.random()*16; this._doWorkbenchAction();
     }
@@ -675,7 +705,8 @@ class MockMachine {
       temp_gan_c:this.tgan, mode_id:this.mode_id,
       connected:true, fault: this.fault,
       x:this.x, y:this.y, u:this.u, v:this.v,
-      workbench:{connected:this.wb.connected},
+      workbench:{connected:this.wb.connected, host:this.wb.host, ip:this.wb.ip, os:this.wb.os,
+                 app:this.wb.app, user:this.wb.user, since_ms:this.wb.since},
       paused:this.paused, running:this.run, job_len:this.L
     };
     this.emit(rep);
@@ -845,7 +876,7 @@ function toast(kind, title, msg, ttl=5200){
    the mock generates the same. We surface them as toasts + flash the chip. */
 let wbBusyUntil=0;
 const WB_MSG={
-  connect:    {k:"good", t:"Microspark Workbench", m:()=>"Connected"},
+  connect:    {k:"good", t:"Microspark Workbench", m:d=>"Connected · "+(d||"computer")},
   disconnect: {k:"warn", t:"Microspark Workbench", m:()=>"Disconnected"},
   program:    {k:"wb",   t:"Program sent",          m:d=>`Loaded from Workbench · ${d}`},
   run:        {k:"wb",   t:"Control · Workbench",    m:d=>`Run started${d?" · "+d:""}`},
@@ -864,6 +895,23 @@ function workbenchEvent(kind, detail){
   log(`[Workbench] ${msg}`, kind==="stop"?"badv":kind==="hold"||kind==="disconnect"?"warnv":"okv");
 }
 
+/* connected-computer details popover (filled from rep.workbench identity) */
+let lastWb={connected:false};
+function fmtSince(ms){ if(!ms) return "—"; let s=Math.max(0,(Date.now()-ms)/1000);
+  const h=(s/3600)|0, m=((s%3600)/60)|0, ss=(s%60)|0; return (h?h+"h ":"")+((m||h)?m+"m ":"")+ss+"s"; }
+function renderWbInfo(wb){
+  const conn=!!(wb&&wb.connected);
+  $("#wbi_dot").className="dot "+(conn?"live":"bad");
+  $("#wbi_host").textContent= conn? (wb.host||"Unknown computer") : "Microspark Workbench";
+  $("#wbi_body").style.display=conn?"block":"none";
+  $("#wbi_none").style.display=conn?"none":"block";
+  if(conn){
+    $("#wbi_ip").textContent=wb.ip||"—"; $("#wbi_os").textContent=wb.os||"—";
+    $("#wbi_app").textContent=wb.app||"—"; $("#wbi_user").textContent=wb.user||"—";
+    $("#wbi_since").textContent=fmtSince(wb.since_ms);
+  }
+}
+
 function render(rep){
   stats.update(rep);
   // ---- header chips ----
@@ -874,9 +922,10 @@ function render(rep){
   $("#conntxt").textContent= rep.connected? (client.live?"Live":"Demo"):"Offline";
   $("#conndot").className="dot "+(rep.connected?"live":"bad");
   // ---- Microspark Workbench chip ----
-  const wb=rep.workbench||{connected:false};
+  const wb=rep.workbench||{connected:false}; lastWb=wb;
   $("#wbdot").className = (performance.now()<wbBusyUntil)?"dot busy":(wb.connected?"dot live":"dot");
-  $("#wbtxt").textContent = wb.connected? "Workbench" : "No Workbench";
+  $("#wbtxt").textContent = wb.connected? (wb.host||"Workbench") : "No Workbench";
+  if($("#wbinfo").classList.contains("show")) renderWbInfo(wb);
 
   // ---- fault banner ----
   const fb=$("#faultbar");
@@ -985,6 +1034,14 @@ requestAnimationFrame(loop);
 /* ---- controls ---- */
 function send(cmd){ client.send(cmd); }
 
+// connected-computer popover (Workbench chip)
+$("#wbchip").addEventListener("click",e=>{ e.stopPropagation();
+  const p=$("#wbinfo"); const show=!p.classList.contains("show");
+  p.classList.toggle("show",show); if(show) renderWbInfo(lastWb); });
+$("#wbi_x").addEventListener("click",()=>$("#wbinfo").classList.remove("show"));
+document.addEventListener("click",e=>{ const p=$("#wbinfo");
+  if(p.classList.contains("show") && !p.contains(e.target) && !$("#wbchip").contains(e.target)) p.classList.remove("show"); });
+
 // mode switch (operator gated by passcode)
 $("#modeswitch").addEventListener("click",e=>{
   const b=e.target.closest("button"); if(!b) return;
@@ -1050,8 +1107,11 @@ log(liveAttempt?"Connecting to firmware…":"Demo mode — simulated machine.","
      on Channel::autoReport at report_hz; $EDM/Status, $EDM/TouchOff, $EDM/Tension=,
      $EDM/ResetWireFeed are registered there. This page already speaks that protocol.
   5. Microspark Workbench presence + notifications:
-     - Add a "workbench":{"connected":bool} object to the edm_update report so the header
-       chip reflects whether the Workbench desktop app is on the link (track its WS client).
+     - Add a "workbench" object to the edm_update report: {"connected":bool, "host":str,
+       "ip":str, "os":str, "app":str, "user":str, "since_ms":epoch}. The firmware only sees
+       the socket's IP — the HOST NAME (and os/app/user) must be self-reported by the
+       Workbench in a connect "hello" message and cached against that client. The chip then
+       shows the computer name and the click-popover shows the full identity.
      - When a command/program originates from the Workbench, broadcast a discrete event:
        [MSG:JSON:...]{"type":"edm_event","src":"workbench","kind":"program|run|hold|resume|
        stop|mode|tension|jog","detail":"<job or value>"}. This page renders each as a toast
