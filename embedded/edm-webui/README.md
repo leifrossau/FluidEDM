@@ -24,6 +24,13 @@ with no device attached.
   XYUV jog pad, job + EDM energy-mode controls, tension setpoint, touch-off,
   reset-wire-feed, and an event log.
 
+## Themes
+Dark (default) and a **light** theme, toggled by the ☾/☀ button in the header and
+remembered in `localStorage`. Both use a deliberately restrained, industrial palette
+(muted amber/teal, soft glows) rather than a neon look. The spark-gap box stays a dark
+"instrument screen" in both themes. Whole page gzips to ~21 KB — well within the ESP32
+flash budget.
+
 ## Smoothing
 Telemetry updates ~10–12×/s. The spark-gap classifier mix and the classifier bar
 fills are eased (EWMA + CSS transitions) so nothing flickers; the operator spark
