@@ -30,6 +30,7 @@
     --open:#6b8ed0;             /* muted blue */
     --ok:#45c2a6;
     --inset:#0e1115; --grid:rgba(150,168,188,.03); --marker:rgba(230,234,239,.8);
+    --screen:radial-gradient(120% 90% at 50% 30%,#0c161b,#070a0d);   /* spark-box screen */
     --bloom:radial-gradient(1100px 650px at 80% -12%, rgba(226,134,47,.045), transparent 60%),
             radial-gradient(820px 560px at 0% 112%, rgba(69,194,166,.028), transparent 55%);
     --mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Menlo,Consolas,monospace;
@@ -47,6 +48,7 @@
     --healthy:#1f9e86; --arc:#a8841f; --fault:#cf3a4f; --open:#3f63b8;
     --ok:#1f9e86;
     --inset:#eef1f4; --grid:rgba(40,62,92,.05); --marker:rgba(27,34,41,.55);
+    --screen:radial-gradient(120% 90% at 50% 30%,#e8edf2,#d8dee7);   /* light spark-box screen */
     --bloom:radial-gradient(1100px 650px at 80% -12%, rgba(194,106,35,.04), transparent 62%);
     --glow:0 0 5px rgba(194,106,35,.16);
   }
@@ -210,12 +212,10 @@
   @keyframes flash{0%,100%{box-shadow:0 0 0 0 rgba(255,77,94,0)}50%{box-shadow:0 0 22px 1px rgba(255,77,94,.5)}}
 
   /* spark gap canvas */
-  .sparkbox{position:relative; border-radius:12px; overflow:hidden; background:radial-gradient(120% 90% at 50% 30%,#0c161b,#070a0d); border:1px solid var(--line2)}
+  .sparkbox{position:relative; border-radius:12px; overflow:hidden; background:var(--screen); border:1px solid var(--line2)}
   .sparkbox canvas{display:block; width:100%; height:100%}
-  /* the spark box is an instrument "screen": always dark in both themes, so its
-     overlay text uses fixed light-on-dark colors rather than the theme vars */
-  .sparkbox .ov{position:absolute; left:14px; bottom:12px; font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:#8a95a2; text-transform:uppercase}
-  .sparkbox .ov b{color:#eaa46a}
+  .sparkbox .ov{position:absolute; left:14px; bottom:12px; font-family:var(--mono); font-size:10px; letter-spacing:.14em; color:var(--muted); text-transform:uppercase}
+  .sparkbox .ov b{color:var(--spark-soft)}
 
   /* ---------- CUSTOMER layout ---------- */
   #customer{display:none}
@@ -557,6 +557,7 @@
 const $ = s => document.querySelector(s);
 const clamp = (v,a,b) => v<a?a:v>b?b:v;
 const lerp = (a,b,t) => a+(b-a)*t;
+let uiLight=false;   // set by applyTheme; the spark canvas recolours to match the theme
 
 /* =====================================================================
    FluidEdmClient — real binding to the firmware (used when on-device).
@@ -738,6 +739,24 @@ class MockMachine {
    classifier mix: normal -> bright cyan-white discharges; arc -> clustered
    amber; short -> red bridge; open -> dim, few. Lives in <canvas>.
    ===================================================================== */
+// Per-theme palette for the spark canvas. Spark colours are "rgba(r,g,b," prefixes
+// (alpha appended at draw time). Wire is copper. On light, the screen is light, the
+// discharges are darker-saturated (so they read on a pale background) and glow is off.
+const SPARK_PAL = {
+  dark:{
+    dielA:"rgba(20,40,55,0)", dielB:"rgba(40,90,120,.10)",
+    work:"#0c1318", edge:"rgba(120,150,170,.25)", hatch:"rgba(120,150,170,.06)",
+    wireOn:"#e0935a", wireOff:"#9a6a47", wireBad:"#6b5240", wireGlow:"rgba(224,147,90,.55)",
+    sNormal:"rgba(190,235,255,", sArc:"rgba(255,176,60,", sShort:"rgba(255,77,94,", glow:true
+  },
+  light:{
+    dielA:"rgba(60,90,120,0)", dielB:"rgba(40,90,130,.07)",
+    work:"#cdd5de", edge:"rgba(70,92,112,.42)", hatch:"rgba(70,92,112,.10)",
+    wireOn:"#b06a2e", wireOff:"#8a6a4c", wireBad:"#9aa1a8", wireGlow:"rgba(176,106,46,.4)",
+    sNormal:"rgba(20,110,160,", sArc:"rgba(196,116,18,", sShort:"rgba(205,40,55,", glow:false
+  }
+};
+
 class SparkGap{
   constructor(canvas){ this.c=canvas; this.ctx=canvas.getContext("2d"); this.parts=[];
     this.cur={n:.06,a:.08,s:.06,o:.8}; this.tgt={n:.06,a:.08,s:.06,o:.8};
@@ -762,20 +781,20 @@ class SparkGap{
     cu.n+=(tg.n-cu.n)*k; cu.a+=(tg.a-cu.a)*k; cu.s+=(tg.s-cu.s)*k; cu.o+=(tg.o-cu.o)*k;
     const st={ n:cu.n, a:cu.a, s:cu.s, o:cu.o, active:this.active, sev:this.sev, collapse:this.collapse, short:cu.s>0.22 };
     const ctx=this.ctx, W=this.c.width, H=this.c.height;
+    const P = uiLight ? SPARK_PAL.light : SPARK_PAL.dark;
     ctx.clearRect(0,0,W,H);
     const wireX=W*0.30, gapW=W*0.16, workX=wireX+gapW;
     // dielectric shimmer
-    const g=ctx.createLinearGradient(0,0,W,0); g.addColorStop(0,"rgba(20,40,55,.0)"); g.addColorStop(.5,"rgba(40,90,120,.10)"); g.addColorStop(1,"rgba(20,40,55,0)");
+    const g=ctx.createLinearGradient(0,0,W,0); g.addColorStop(0,P.dielA); g.addColorStop(.5,P.dielB); g.addColorStop(1,P.dielA);
     ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    // workpiece block
-    ctx.fillStyle="#0c1318"; ctx.fillRect(workX,0,W-workX,H);
-    ctx.strokeStyle="rgba(120,150,170,.25)"; ctx.lineWidth=this.dpr; ctx.beginPath(); ctx.moveTo(workX,0); ctx.lineTo(workX,H); ctx.stroke();
-    // kerf hatch on workpiece
-    ctx.strokeStyle="rgba(120,150,170,.06)";
+    // workpiece block + cut edge + kerf hatch
+    ctx.fillStyle=P.work; ctx.fillRect(workX,0,W-workX,H);
+    ctx.strokeStyle=P.edge; ctx.lineWidth=this.dpr; ctx.beginPath(); ctx.moveTo(workX,0); ctx.lineTo(workX,H); ctx.stroke();
+    ctx.strokeStyle=P.hatch;
     for(let y=-H;y<H;y+=10*this.dpr){ ctx.beginPath(); ctx.moveTo(workX,y); ctx.lineTo(W,y+ W*0.2); ctx.stroke(); }
-    // the wire (vertical), glowing if active
-    const wcol = st.collapse? "#54606c" : st.active? "#cfe9ff":"#7d8a99";
-    ctx.save(); ctx.shadowColor= st.active? "rgba(120,200,255,.6)":"transparent"; ctx.shadowBlur= st.active?12:0;
+    // the wire (vertical) — copper; glows when active
+    const wcol = st.collapse? P.wireBad : st.active? P.wireOn : P.wireOff;
+    ctx.save(); ctx.shadowColor= st.active? P.wireGlow:"transparent"; ctx.shadowBlur= st.active?(P.glow?12:5):0;
     ctx.strokeStyle=wcol; ctx.lineWidth=2.4*this.dpr; ctx.beginPath();
     const sway = st.active? Math.sin(performance.now()/120)*1.2*this.dpr:0;
     ctx.moveTo(wireX+sway,0); ctx.lineTo(wireX-sway,H); ctx.stroke(); ctx.restore();
@@ -786,14 +805,14 @@ class SparkGap{
       if(Math.random()<rate){
         const y=Math.random()*H;
         let color, life, spread;
-        if(st.short){ color="rgba(255,77,94,"; life=10; spread=0.3; }
-        else if(st.a>0.2){ color="rgba(255,176,60,"; life=14; spread=0.7; }
-        else { color="rgba(190,235,255,"; life=12; spread=1; }
+        if(st.short){ color=P.sShort; life=10; spread=0.3; }
+        else if(st.a>0.2){ color=P.sArc; life=14; spread=0.7; }
+        else { color=P.sNormal; life=12; spread=1; }
         this.parts.push({y, x:wireX, life, max:life, color, spread, br: 0.5+Math.random()*0.5});
       }
-      // short = a persistent red bridge
+      // short = a persistent bridge across the gap
       if(st.short && Math.random()<0.5){
-        ctx.strokeStyle="rgba(255,77,94,.7)"; ctx.lineWidth=1.6*this.dpr; ctx.shadowColor="rgba(255,77,94,.7)"; ctx.shadowBlur=10;
+        ctx.strokeStyle=P.sShort+".7)"; ctx.lineWidth=1.6*this.dpr; ctx.shadowColor=P.glow?P.sShort+".7)":"transparent"; ctx.shadowBlur=P.glow?10:0;
         const y=Math.random()*H; ctx.beginPath(); ctx.moveTo(wireX,y);
         let cx=wireX; while(cx<workX){ cx+=gapW/4; ctx.lineTo(cx, y+(Math.random()-0.5)*8*this.dpr); } ctx.stroke(); ctx.shadowBlur=0;
       }
@@ -803,11 +822,11 @@ class SparkGap{
       const p=this.parts[i]; p.life--; if(p.life<=0){ this.parts.splice(i,1); continue; }
       const al=(p.life/p.max)*p.br;
       ctx.strokeStyle=p.color+al+")"; ctx.lineWidth=(1+al*1.6)*this.dpr;
-      ctx.shadowColor=p.color+"0.9)"; ctx.shadowBlur=9*al;
+      ctx.shadowColor=p.color+"0.9)"; ctx.shadowBlur=(P.glow?9:3)*al;
       ctx.beginPath(); ctx.moveTo(wireX, p.y);
       const segs=4; for(let k=1;k<=segs;k++){ const xx=wireX+(gapW)*(k/segs); const yy=p.y+(Math.random()-0.5)*10*this.dpr*p.spread; ctx.lineTo(xx,yy); }
       ctx.stroke();
-      // impact flash on workpiece
+      // impact flash on the cut edge
       ctx.fillStyle=p.color+(al*0.8)+")"; ctx.beginPath(); ctx.arc(workX, p.y, (1.5+al*2)*this.dpr,0,7); ctx.fill();
     }
     ctx.shadowBlur=0;
@@ -1055,7 +1074,7 @@ function send(cmd){ client.send(cmd); }
 
 // theme toggle (light / dark), persisted
 const themeBtn=$("#themebtn");
-function applyTheme(t){ const light=t==="light"; document.body.classList.toggle("light",light);
+function applyTheme(t){ const light=t==="light"; uiLight=light; document.body.classList.toggle("light",light);
   themeBtn.textContent=light?"☀":"☾"; try{ localStorage.setItem("ms_theme",t); }catch(_){} }
 themeBtn.addEventListener("click",()=>applyTheme(document.body.classList.contains("light")?"dark":"light"));
 (function(){ let t="dark"; try{ t=localStorage.getItem("ms_theme")||"dark"; }catch(_){} applyTheme(t); })();
