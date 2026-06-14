@@ -100,6 +100,10 @@ void EdmController::drainEvents() {
     }
 }
 
+bool EdmController::dielReadyToCut(const EDM::diel::DielStats& s) const {
+    return s.flow_clpm >= _dielCfg.flow_min_clpm && s.level_pct >= _dielCfg.level_min_pct;
+}
+
 void EdmController::tick(uint32_t now_ms) {
     _now = now_ms;
     drainEvents();
@@ -113,6 +117,27 @@ void EdmController::tick(uint32_t now_ms) {
     bool stale_hold  = (now_ms - _last_window_change_ms) > _t.tele_hold;
     bool stale_fault = (now_ms - _last_window_change_ms) > _t.tele_fault;
 
+    // ---- dielectric telemetry + interlock readiness (sub-project D) ----
+    EDM::diel::DielStats ds{};
+    const bool dgot    = _diel && _diel->latestStats(ds);
+    const bool dielReq = _diel && _dielCfg.required;
+    const bool dielOk  = !dielReq || (dgot && _diel->present() && dielReadyToCut(ds));
+    _report.diel_present = (_diel && _diel->present());
+    if (dgot) {
+        _report.diel_pump_on        = ds.pump_on;
+        _report.diel_flush_level     = ds.flush_level;
+        _report.diel_flush_mbar      = ds.flush_mbar;
+        _report.diel_flow_clpm       = ds.flow_clpm;
+        _report.diel_temp_dC         = ds.temp_dC;
+        _report.diel_temp_set_dC     = ds.temp_set_dC;
+        _report.diel_conductivity_uS = ds.conductivity_uS;
+        _report.diel_level_pct       = ds.level_pct;
+        _report.diel_filter_pct      = ds.filter_pct;
+        uint16_t dfl = ds.flags;
+        if (ds.conductivity_uS > _dielCfg.conductivity_warn_uS) dfl |= 0x0008;  // high-conductivity warning
+        _report.diel_flags = dfl;
+    }
+
     if (_state != EdmState::Fault && _state != EdmState::StallFault && _state != EdmState::Idle) {
         if (got && s.state == 2)            { enterFault(FaultReason::PsuFault); }
         else if (!proto)                    { enterFault(FaultReason::ProtocolMismatch); }
@@ -120,16 +145,21 @@ void EdmController::tick(uint32_t now_ms) {
         else if (_have_window && stale_fault){ enterFault(FaultReason::HeartbeatLost); }
     }
 
+    // dielectric mid-cut loss -> fault (feed-hold + spark-off handled by Fault state)
+    if (dielReq && (_state == EdmState::Cutting || _state == EdmState::Hold || _state == EdmState::BreakRelief)) {
+        if (!_diel->present() || !(dgot && dielReadyToCut(ds))) enterFault(FaultReason::DielectricLost);
+    }
+
     if (_state == EdmState::Armed) {
         if (!proto) { enterFault(FaultReason::ProtocolMismatch); }
         else if (_arm_fresh) { _arm_fresh = false; }  // settle one tick after arming before evaluating ack
-        else if (connected && _link.lastAckStatus() == 0) {
+        else if (connected && _link.lastAckStatus() == 0 && dielOk) {
             _link.startCut();
             _ss = GapServo::reset();
             _state = EdmState::TouchOff;
             _touchoff_start = now_ms; _touchoff_contig = 0;
         } else if (now_ms >= _arm_deadline) {
-            enterFault(FaultReason::AckTimeout);
+            enterFault((dielReq && !dielOk) ? FaultReason::DielectricNotReady : FaultReason::AckTimeout);
         }
     }
 

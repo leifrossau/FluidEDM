@@ -22,5 +22,12 @@ struct EdmReport {
     int16_t  temp_GaN_dC = 0, temp_L_dC = 0;
     uint16_t dc_link_V_dV = 0;
     uint16_t flags = 0;
+
+    // ---- dielectric (coolant) telemetry (sub-project D) ----
+    bool     diel_present = false;
+    uint8_t  diel_pump_on = 0, diel_flush_level = 0, diel_level_pct = 0, diel_filter_pct = 0;
+    uint16_t diel_flush_mbar = 0, diel_flow_clpm = 0, diel_conductivity_uS = 0;
+    int16_t  diel_temp_dC = 0, diel_temp_set_dC = 0;
+    uint16_t diel_flags = 0;   // bit0 chiller,1 low_flow,2 low_level,3 high_cond,4 filter_clog
 };
 }

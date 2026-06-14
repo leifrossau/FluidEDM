@@ -42,6 +42,10 @@ const char* edm_fault_name(uint8_t fault_reason);  // returns nullptr when None 
 //   energy_uj, dc_link_v(x10->str), peak_i_a(x10->str), temp_gan_c(x10->str),
 //   mode_id, connected, fault(str|null)
 // From WireFeed (when present): tension_N, tension_set_N, tension_collapse
+// Nested "dielectric" object (from EdmReport diel_* fields, populated by
+//   EdmController from the attached IDielLink): present, pump_on, flush_level,
+//   flush_bar(mbar/1000->float), flow_lpm(clpm/100->float), temp_c(dC/10->float),
+//   temp_set(dC/10->float), conductivity_us, level_pct, filter_pct, flags
 // TODO(P4) — NOT yet in EdmReport / not wired through, emitted as 0 with a note:
 //   progress_pct, feed_mm_min, x, y, u, v  (come from EdmMotion / the planner)
 //   tension_N/tension_set_N fall back to 0 when no WireFeed is configured.

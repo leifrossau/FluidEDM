@@ -48,10 +48,15 @@ constexpr std::array<const char*, 5> kServoStateNames = {
 };
 
 // FaultReason (EDM/Servo/FaultReason.h): index 0 == None (-> JSON null).
-constexpr std::array<const char*, 8> kFaultNames = {
+// Keep in lock-step with the enum (appended-only); the static_assert below trips
+// the build if a new FaultReason is added without a name here.
+constexpr std::array<const char*, 10> kFaultNames = {
     "None", "AckTimeout", "ProtocolMismatch", "TouchOffNoContact",
-    "ServoStall", "HeartbeatLost", "PsuFault", "SensorDisagree"
+    "ServoStall", "HeartbeatLost", "PsuFault", "SensorDisagree",
+    "DielectricNotReady", "DielectricLost"
 };
+static_assert(kFaultNames.size() == static_cast<size_t>(FaultReason::DielectricLost) + 1,
+              "kFaultNames is out of sync with enum FaultReason");
 
 // "tag": <int>  (bare number, no quotes)
 void num(JSONencoder& j, const char* tag, int32_t v) {
@@ -77,6 +82,18 @@ void num_deci(JSONencoder& j, const char* tag, int32_t deci) {
 void num_f1(JSONencoder& j, const char* tag, float v) {
     char buf[24];
     std::snprintf(buf, sizeof(buf), "%.1f", static_cast<double>(v));
+    j.begin_member(tag);
+    j.verbatim(buf);
+}
+
+// "tag": <v.dd>  formatted by dividing an integer by `div` (a power of ten).
+// Mirrors num_deci/num_f1: writes a bare (unquoted) decimal literal via verbatim()
+// so the WebUI reads it as a number. `decimals` matches the number of zeros in
+// `div` so the printed precision lines up with the fixed-point resolution
+// (e.g. div=1000 -> 3 decimals for mbar->bar; div=100 -> 2 decimals for cL->L).
+void num_scaled(JSONencoder& j, const char* tag, int32_t v, int32_t div, int decimals) {
+    char buf[24];
+    std::snprintf(buf, sizeof(buf), "%.*f", decimals, static_cast<double>(v) / static_cast<double>(div));
     j.begin_member(tag);
     j.verbatim(buf);
 }
@@ -158,6 +175,29 @@ static void emit_core(JSONencoder& j, const EDM::EdmReport& r) {
     num(j, "v", 0);              // TODO(P4)
 }
 
+// Emit the dielectric (coolant) telemetry as a nested object, matching the
+// frozen WebUI contract (embedded/edm-webui consumes rep.dielectric.*):
+//   present, pump_on, flush_level, flush_bar(float), flow_lpm(float),
+//   temp_c(float), temp_set(float), conductivity_us, level_pct, filter_pct, flags.
+// The EdmReport diel_* fields are populated by EdmController::tick() from the
+// attached IDielLink; when no module is present they stay 0 and present==false,
+// so the keys always exist (the WebUI never sees undefined).
+static void emit_dielectric(JSONencoder& j, const EDM::EdmReport& r) {
+    j.begin_member_object("dielectric");
+    num(j, "present", r.diel_present ? 1 : 0);
+    num(j, "pump_on", static_cast<int32_t>(r.diel_pump_on));
+    num(j, "flush_level", static_cast<int32_t>(r.diel_flush_level));
+    num_scaled(j, "flush_bar", static_cast<int32_t>(r.diel_flush_mbar), 1000, 3);  // mbar -> bar
+    num_scaled(j, "flow_lpm", static_cast<int32_t>(r.diel_flow_clpm), 100, 2);      // cL/min -> L/min
+    num_deci(j, "temp_c", r.diel_temp_dC);          // dC -> C (one decimal)
+    num_deci(j, "temp_set", r.diel_temp_set_dC);    // dC -> C (one decimal)
+    num(j, "conductivity_us", static_cast<int32_t>(r.diel_conductivity_uS));
+    num(j, "level_pct", static_cast<int32_t>(r.diel_level_pct));
+    num(j, "filter_pct", static_cast<int32_t>(r.diel_filter_pct));
+    num(j, "flags", static_cast<int32_t>(r.diel_flags));
+    j.end_object();
+}
+
 // Compact periodic telemetry pushed at report_hz. Small by design.
 //
 // ENVELOPE NOTE (TODO(P4)): the WebUI routes on the line prefix
@@ -175,6 +215,7 @@ void report_edm_stats(Channel& channel, const EDM::EdmReport& r, const EDM::feed
     j.member("type", "edm_update");  // in-payload discriminator (see ENVELOPE NOTE)
     emit_core(j, r);
     emit_tension(j, feed);
+    emit_dielectric(j, r);
     j.end();
 }
 
@@ -199,6 +240,7 @@ void edm_status_dump(Channel& channel, const EDM::EdmReport& r, const EDM::feed:
     j.member("type", "edm_full_status");  // in-payload discriminator (see ENVELOPE NOTE)
     emit_core(j, r);
     emit_tension(j, feed);
+    emit_dielectric(j, r);
 
     // Raw / extra fields (fixed-point ints kept as-is for diagnostics).
     num(j, "psu_state", static_cast<int32_t>(r.psu_state));

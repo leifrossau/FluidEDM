@@ -2,6 +2,7 @@
 #include "gtest/gtest.h"
 #include "EDM/Control/EdmController.h"
 #include "EDM/Psu/SimPsuLink.h"
+#include "EDM/Diel/SimDielLink.h"
 
 using namespace EDM;
 using namespace EDM::servo;
@@ -164,4 +165,67 @@ TEST(EdmController, ModeRestoresAfterWireBreakClears) {
     for (int i = 0; i < 520; ++i) { sim.tick(); ctl.tick(t++); }
     EXPECT_EQ(ctl.snapshot().active_mode_id, 1);           // restored to Rough
     EXPECT_NE(ctl.state(), EdmState::Fault);
+}
+
+TEST(EdmController, DielectricGatesStartCut) {
+    SimPsuLink psu; psu.begin();
+    ServoConfig cfg; ModeTable modes = makeModes();
+    EdmController ctl(psu, cfg, modes);
+    EDM::diel::SimDielLink diel; diel.begin();   // present, but no flow yet
+    EdmController::DielInterlock di; di.required = true;
+    ctl.attachDielectric(&diel, di);
+    ctl.requestCut(900);
+    uint32_t t = 0;
+    for (int i = 0; i < 10; ++i) { psu.tick(); ctl.tick(t++); }
+    EXPECT_EQ(ctl.state(), EdmState::Armed);          // blocked: no flushing
+    EXPECT_NE(ctl.state(), EdmState::Fault);
+    diel.setCutting(true);
+    EDM::diel::SetDiel sd; sd.flush_level = 2; diel.setDiel(sd);
+    for (int i = 0; i < 40; ++i) { diel.tick(0.012f); psu.tick(); ctl.tick(t++); }
+    EXPECT_NE(ctl.state(), EdmState::Fault);
+    EXPECT_TRUE(ctl.state() == EdmState::TouchOff || ctl.state() == EdmState::Cutting || ctl.state() == EdmState::Hold);
+}
+
+TEST(EdmController, DielectricLossFaultsMidCut) {
+    SimPsuLink psu; psu.begin();
+    ServoConfig cfg; ModeTable modes = makeModes();
+    EdmController ctl(psu, cfg, modes);
+    EDM::diel::SimDielLink diel; diel.begin(); diel.setCutting(true);
+    EDM::diel::SetDiel sd; sd.flush_level = 2; diel.setDiel(sd);
+    EdmController::DielInterlock di; di.required = true;
+    ctl.attachDielectric(&diel, di);
+    ctl.requestCut(900);
+    uint32_t t = 0;
+    for (int i = 0; i < 80; ++i) { diel.tick(0.012f); psu.tick(); ctl.tick(t++); }
+    ASSERT_TRUE(ctl.state() == EdmState::Cutting || ctl.state() == EdmState::Hold);
+    EDM::diel::SetDiel off; off.flush_level = 0; diel.setDiel(off);   // kill flushing -> flow decays
+    for (int i = 0; i < 80; ++i) { diel.tick(0.012f); psu.tick(); ctl.tick(t++); }
+    EXPECT_EQ(ctl.state(), EdmState::Fault);
+    EXPECT_EQ(ctl.fault(), FaultReason::DielectricLost);
+}
+
+TEST(EdmController, NoDielectricNoGate) {
+    SimPsuLink psu; psu.begin();
+    ServoConfig cfg; ModeTable modes = makeModes();
+    EdmController ctl(psu, cfg, modes);
+    ctl.requestCut(900);
+    uint32_t t = 0;
+    for (int i = 0; i < 20; ++i) { psu.tick(); ctl.tick(t++); }
+    EXPECT_NE(ctl.state(), EdmState::Fault);
+    EXPECT_TRUE(ctl.state() == EdmState::TouchOff || ctl.state() == EdmState::Cutting || ctl.state() == EdmState::Hold);
+}
+
+TEST(EdmController, ReportPopulatesDielFields) {
+    SimPsuLink psu; psu.begin();
+    ServoConfig cfg; ModeTable modes = makeModes();
+    EdmController ctl(psu, cfg, modes);
+    EDM::diel::SimDielLink diel; diel.begin(); diel.setCutting(true);
+    EDM::diel::SetDiel sd; sd.flush_level = 2; diel.setDiel(sd);
+    ctl.attachDielectric(&diel, {});   // required=false default; still publishes telemetry
+    uint32_t t = 0;
+    for (int i = 0; i < 30; ++i) { diel.tick(0.012f); psu.tick(); ctl.tick(t++); }
+    EdmReport r = ctl.snapshot();
+    EXPECT_TRUE(r.diel_present);
+    EXPECT_EQ(r.diel_pump_on, 1);
+    EXPECT_GT(r.diel_flow_clpm, 0);
 }
