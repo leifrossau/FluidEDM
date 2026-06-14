@@ -166,6 +166,10 @@
   .kv .v{font-family:var(--mono); font-weight:500}
   .kv .v.big{font-size:18px}
 
+  /* mini bar (tank level, filter life, …) */
+  .minibar{height:8px; border-radius:5px; background:var(--inset); border:1px solid var(--line2); overflow:hidden; margin-top:3px}
+  .minibar .minifill{height:100%; border-radius:5px; background:var(--spark); transition:width .3s ease, background .3s}
+
   /* buttons */
   .btn{
     font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase;
@@ -349,6 +353,7 @@
             <span class="pip"><span class="dot" id="p_tension"></span>Tension</span>
             <span class="pip"><span class="dot" id="p_gap"></span>Gap</span>
             <span class="pip"><span class="dot" id="p_psu"></span>Power</span>
+            <span class="pip"><span class="dot" id="p_diel"></span>Coolant</span>
           </div>
           <div class="ctrls">
             <button class="btn primary" id="c_start">▶ Start</button>
@@ -450,6 +455,27 @@
           <div class="kv"><span class="label">Peak current</span><span class="v" id="o_ipk">0.0 A</span></div>
           <div class="kv"><span class="label">GaN temp</span><span class="v" id="o_tgan">—</span></div>
           <div class="kv"><span class="label">PSU link</span><span class="v" id="o_psu">sim</span></div>
+        </div>
+
+        <div class="panel col-4 fade" style="animation-delay:.05s">
+          <p class="ttl">Dielectric system</p>
+          <div class="kv"><span class="label">Flushing</span><span class="v" id="di_flush">—</span></div>
+          <div class="kv"><span class="label">Flow</span><span class="v" id="di_flow">—</span></div>
+          <div class="kv"><span class="label">Fluid temp</span><span class="v" id="di_temp">—</span></div>
+          <div class="kv"><span class="label">Conductivity</span><span class="v" id="di_cond">—</span></div>
+          <div style="margin:10px 0 1px;display:flex;justify-content:space-between" class="label"><span>Tank level</span><span id="di_levv">—</span></div>
+          <div class="minibar"><div class="minifill" id="di_level" style="width:0%;background:var(--open)"></div></div>
+          <div style="margin:9px 0 1px;display:flex;justify-content:space-between" class="label"><span>Deioniser filter</span><span id="di_filtv">—</span></div>
+          <div class="minibar"><div class="minifill" id="di_filter" style="width:0%;background:var(--healthy)"></div></div>
+          <div class="field" style="margin:12px 0 0">
+            <label class="label">Flush level</label>
+            <div class="seg" id="flushseg" style="margin-top:0">
+              <button class="btn" data-flush="0">Off</button>
+              <button class="btn" data-flush="1">Low</button>
+              <button class="btn on" data-flush="2">Med</button>
+              <button class="btn" data-flush="3">High</button>
+            </div>
+          </div>
         </div>
 
         <div class="panel col-4 fade">
@@ -611,6 +637,9 @@ class MockMachine {
     this.wb={connected:false, host:"MS-WORKBENCH-PC", ip:"192.168.4.23", os:"Windows 11 Pro (24H2)",
              app:"Microspark Workbench v2.3.1", user:"shop-floor", since:0};
     this.onWorkbench=null; this._wbCd=2.2;
+    // Dielectric (coolant) subsystem — a CAN module on a real machine; simulated here.
+    this.diel={ present:true, pump_on:false, flush_level:2, flush_bar:0, flow_lpm:0,
+                temp_c:21.5, temp_set:22.0, conductivity_us:6.0, level_pct:88, filter_pct:96 };
   }
   reset(){
     this.run=false; this.paused=false; this.s=0; this.L=100; this.fault=null;
@@ -709,6 +738,22 @@ class MockMachine {
       vs=0; op=92; n=4; a=2; sh=2; this.tension=lerp(this.tension,this.run?this.tensionSet:0,0.2); this.energy=0;
     }
 
+    // --- dielectric (coolant) subsystem ---
+    const d=this.diel;
+    if(this.run && !this.paused){
+      d.pump_on=true;
+      const barT=[0,1.4,2.6,4.2][d.flush_level], flowT=[0.4,2.6,4.6,6.8][d.flush_level];
+      d.flush_bar=lerp(d.flush_bar, barT+noise(0.15), 0.2);
+      d.flow_lpm =lerp(d.flow_lpm,  flowT+noise(0.25), 0.2);
+      d.temp_c   =clamp(lerp(d.temp_c, d.temp_set+0.6+noise(0.5), 0.03), 16, 34);  // warms under load; chiller caps
+      d.conductivity_us=clamp(d.conductivity_us+0.004+noise(0.03), 1, 40);          // creeps up; deioniser resin holds it
+      d.level_pct=clamp(d.level_pct-0.0015, 0, 100);                                 // slow consumption
+      d.filter_pct=clamp(d.filter_pct-0.0006, 0, 100);
+    } else {
+      d.pump_on=false; d.flush_bar=lerp(d.flush_bar,0,0.3); d.flow_lpm=lerp(d.flow_lpm,0,0.3);
+      d.temp_c=lerp(d.temp_c, d.temp_set, 0.02);
+    }
+
     const tot=n+a+sh+op;
     const rep={
       window_id:this.window,
@@ -727,6 +772,9 @@ class MockMachine {
       x:this.x, y:this.y, u:this.u, v:this.v,
       workbench:{connected:this.wb.connected, host:this.wb.host, ip:this.wb.ip, os:this.wb.os,
                  app:this.wb.app, user:this.wb.user, since_ms:this.wb.since},
+      dielectric:{present:d.present, pump_on:d.pump_on, flush_level:d.flush_level, flush_bar:d.flush_bar,
+                  flow_lpm:d.flow_lpm, temp_c:d.temp_c, temp_set:d.temp_set, conductivity_us:d.conductivity_us,
+                  level_pct:d.level_pct, filter_pct:d.filter_pct},
       paused:this.paused, running:this.run, job_len:this.L
     };
     this.emit(rep);
@@ -952,6 +1000,7 @@ function renderWbInfo(wb){
 
 function render(rep){
   stats.update(rep);
+  const di=rep.dielectric||{};
   // ---- header chips ----
   const cs=rep.controller_state;
   $("#statetxt").textContent=(cs||"—").toUpperCase();
@@ -987,6 +1036,7 @@ function render(rep){
   pip($("#p_tension"), Math.abs(rep.tension_N-rep.tension_set_N)>1.5?'warn':rep.running?'ok':'idle');
   pip($("#p_gap"), (rep.n_short/(rep.total_pulses||1))>0.25?'bad':cs==="Cutting"?'ok':rep.running?'warn':'idle');
   pip($("#p_psu"), rep.connected?'ok':'bad');
+  pip($("#p_diel"), !di.pump_on?(rep.running?'warn':'idle') : (di.conductivity_us>20||di.level_pct<20||di.temp_c>30)?'bad' : (di.conductivity_us>12||di.level_pct<35)?'warn':'ok');
   // est time (demo): remaining at current rate
   if(rep.running&&pct<100&&pct>0){ const rem=Math.round((100-pct)/Math.max(pct,1)*(performance.now()-(state._t0||performance.now()))/1000); $("#c_est").textContent="≈ "+fmtT(rem)+" remaining"; }
   else if(cs==="Complete") $("#c_est").textContent="Finished";
@@ -1043,6 +1093,20 @@ function render(rep){
   $("#o_energy").textContent=rep.energy_uj+" µJ"; $("#o_dclink").textContent=rep.dc_link_v.toFixed(1)+" V";
   $("#o_ipk").textContent=rep.peak_i_a.toFixed(1)+" A"; $("#o_tgan").textContent=rep.temp_gan_c.toFixed(1)+" °C";
   $("#o_psu").textContent= client.live?"CAN-FD":"sim"; $("#o_psu").style.color=client.live?"var(--healthy)":"var(--muted)";
+  // dielectric (coolant) system
+  const diOn=!!di.pump_on;
+  $("#di_flush").textContent = diOn? di.flush_bar.toFixed(1)+" bar" : "off";
+  $("#di_flush").style.color = diOn?"var(--text)":"var(--muted)";
+  $("#di_flow").textContent  = diOn? di.flow_lpm.toFixed(1)+" L/min" : "—";
+  if(di.temp_c!=null){ $("#di_temp").textContent=di.temp_c.toFixed(1)+" °C";
+    $("#di_temp").style.color=(di.temp_c>28||di.temp_c<12)?"var(--arc)":"var(--text)"; } else $("#di_temp").textContent="—";
+  if(di.conductivity_us!=null){ $("#di_cond").textContent=Math.round(di.conductivity_us)+" µS/cm";
+    $("#di_cond").style.color=di.conductivity_us>20?"var(--fault)":di.conductivity_us>12?"var(--arc)":"var(--healthy)"; } else $("#di_cond").textContent="—";
+  const _lv=di.level_pct||0; $("#di_level").style.width=clamp(_lv,0,100)+"%"; $("#di_levv").textContent=Math.round(_lv)+"%";
+  $("#di_level").style.background= _lv<20?"var(--fault)":_lv<40?"var(--arc)":"var(--open)";
+  const _fl=di.filter_pct||0; $("#di_filter").style.width=clamp(_fl,0,100)+"%"; $("#di_filtv").textContent=Math.round(_fl)+"%";
+  $("#di_filter").style.background= _fl<20?"var(--fault)":_fl<40?"var(--arc)":"var(--healthy)";
+  if(di.flush_level!=null) document.querySelectorAll("#flushseg .btn").forEach(b=>b.classList.toggle("on",+b.dataset.flush===di.flush_level));
   // operator run buttons
   $("#o_run").disabled=rep.running; $("#o_hold").disabled=!rep.running||rep.paused;
   $("#o_resume").disabled=!rep.paused; $("#o_stop").disabled=!rep.running&&cs!=="Fault";
@@ -1136,6 +1200,10 @@ $("#modeseg").addEventListener("click",e=>{ const b=e.target.closest("[data-mode
   log("EDM mode → S"+state.modeS,"ev"); });
 $("#tensrange").addEventListener("input",e=>{ const v=parseFloat(e.target.value); $("#tenslbl").textContent=v.toFixed(1); mock.tensionSet=v; });
 $("#tensrange").addEventListener("change",e=>{ send("$EDM/Tension="+e.target.value); log("Tension setpoint → "+e.target.value+" N","ev"); });
+$("#flushseg").addEventListener("click",e=>{ const b=e.target.closest("[data-flush]"); if(!b)return;
+  const lv=+b.dataset.flush; mock.diel.flush_level=lv;
+  document.querySelectorAll("#flushseg .btn").forEach(x=>x.classList.toggle("on",x===b));
+  const names=["Off","Low","Medium","High"]; send("$EDM/Flush="+names[lv]); log("Dielectric flush → "+names[lv],"ev"); });
 
 log("Microspark Wire-EDM UI ready.","okv");
 log(liveAttempt?"Connecting to firmware…":"Demo mode — simulated machine.","m");
@@ -1161,6 +1229,11 @@ log(liveAttempt?"Connecting to firmware…":"Demo mode — simulated machine.","
        [MSG:JSON:...]{"type":"edm_event","src":"workbench","kind":"program|run|hold|resume|
        stop|mode|tension|jog","detail":"<job or value>"}. This page renders each as a toast
        and flashes the Workbench chip. (kind/detail map to the WB_MSG table in the script.)
+  6. Dielectric (coolant) system — a CAN module (the PSU design's "dielectric module").
+     Add a "dielectric" object to the report: {"present":bool, "pump_on":bool, "flush_level":0-3,
+     "flush_bar":float, "flow_lpm":float, "temp_c":float, "temp_set":float, "conductivity_us":float,
+     "level_pct":0-100, "filter_pct":0-100}. Panel degrades to "—" if the module is absent.
+     Control: $EDM/Flush=Off|Low|Medium|High (+ pump / temp setpoint when supported).
 -->
 
 </body>

@@ -20,9 +20,11 @@ with no device attached.
   (advance/hold/retract + vₛ), cut-progress ring, pulse-classification bars with a
   **dashed ø rolling-average marker** on each, a **Process statistics** panel (cut
   time, total pulses, per-class averages, short events, retractions, energy delivered,
-  avg feed / peak tension), wire feed + tension gauge, PSU power telemetry, an
-  XYUV jog pad, job + EDM energy-mode controls, tension setpoint, touch-off,
-  reset-wire-feed, and an event log.
+  avg feed / peak tension), wire feed + tension gauge, PSU power telemetry, a
+  **Dielectric system** panel (flushing pressure, flow, fluid temp, conductivity /
+  deioniser health, tank level, filter life, and a flush-level control), an XYUV jog
+  pad, job + EDM energy-mode controls, tension setpoint, touch-off, reset-wire-feed,
+  and an event log. A **Coolant** health pip also appears in the customer view.
 
 ## Themes
 Dark (default) and a **light** theme, toggled by the ☾/☀ button in the header and
