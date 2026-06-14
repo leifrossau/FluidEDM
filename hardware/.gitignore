@@ -1,0 +1,8 @@
+# KiCad transient / per-user / generated artifacts
+drc.json
+erc.json
+*-backups/
+fp-info-cache
+*.kicad_prl
+*.lck
+_autosave-*
