@@ -17,10 +17,27 @@ with no device attached.
   Start / Pause / Stop. No settings, no jog. Switching to operator needs the
   4-digit code (demo: **2468**).
 - **Operator**: the full instrument cluster — XYUV position, the gap-servo trace
-  (advance/hold/retract + vₛ), cut-progress ring, pulse-classification histogram
-  (normal/arc/short/open), wire feed + tension gauge, PSU power telemetry, an
+  (advance/hold/retract + vₛ), cut-progress ring, pulse-classification bars with a
+  **dashed ø rolling-average marker** on each, a **Process statistics** panel (cut
+  time, total pulses, per-class averages, short events, retractions, energy delivered,
+  avg feed / peak tension), wire feed + tension gauge, PSU power telemetry, an
   XYUV jog pad, job + EDM energy-mode controls, tension setpoint, touch-off,
   reset-wire-feed, and an event log.
+
+## Smoothing
+Telemetry updates ~10–12×/s. The spark-gap classifier mix and the classifier bar
+fills are eased (EWMA + CSS transitions) so nothing flickers; the operator spark
+canvas uses a `ResizeObserver` so it's pixel-sharp the moment the page is shown
+(it's `display:none` at load, which previously left it low-res).
+
+## Microspark Workbench integration
+A header chip shows whether the **Microspark Workbench** desktop app is connected to
+the same link. When a program is sent or a control is activated *from the Workbench*,
+the UI raises a **toast notification** and flashes the chip. Contract: the firmware
+adds `"workbench":{"connected":…}` to the telemetry and broadcasts
+`{"type":"edm_event","src":"workbench","kind":…,"detail":…}` per Workbench action
+(see the build note at the foot of `index.html`). The browser demo simulates the
+Workbench connecting, sending programs, and tweaking controls so the feature is live.
 
 ## Signature element
 The **spark-gap visualization** renders the abstract `EdmReport` classifier mix

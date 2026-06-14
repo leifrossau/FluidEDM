@@ -117,13 +117,17 @@
   .axis-val{font-family:var(--mono); font-size:24px; font-weight:500; letter-spacing:.02em}
   .axis-val .u{font-size:11px; color:var(--muted); margin-left:5px}
 
-  /* classifier bars */
-  .clf{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; align-items:end; height:120px; margin-top:6px}
-  .clf .bar{position:relative; height:100%; display:flex; flex-direction:column; justify-content:flex-end; gap:6px}
-  .clf .fill{border-radius:5px 5px 2px 2px; transition:height .25s cubic-bezier(.2,.8,.2,1); min-height:2px; box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+  /* classifier bars — live fill + rolling-average marker line */
+  .clf{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; height:150px; margin-top:6px}
+  .clf .bar{display:flex; flex-direction:column; gap:6px; height:100%}
+  .clf .track{flex:1; position:relative; display:flex; align-items:flex-end; background:rgba(140,170,200,.04); border-radius:6px}
+  .clf .fill{width:100%; border-radius:5px 5px 2px 2px; transition:height .3s cubic-bezier(.2,.8,.2,1); min-height:2px; box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+  .clf .avg{position:absolute; left:-2px; right:-2px; height:0; border-top:2px dashed rgba(231,237,243,.85); transition:bottom .6s ease; pointer-events:none}
+  .clf .avg::after{content:"ø"; position:absolute; right:1px; top:-12px; font-family:var(--mono); font-size:8px; color:rgba(231,237,243,.65)}
   .clf .bn{color:var(--healthy)} .clf .ba{color:var(--arc)} .clf .bs{color:var(--fault)} .clf .bo{color:var(--open)}
   .clf .cap{font-family:var(--mono); font-size:9.5px; text-align:center; letter-spacing:.1em; color:var(--muted); text-transform:uppercase}
-  .clf .pct{font-family:var(--mono); font-size:12px; text-align:center; font-weight:600}
+  .clf .pct{font-family:var(--mono); font-size:13px; text-align:center; font-weight:600}
+  .clf .pct small{color:var(--faint); font-weight:400; font-size:.62em; letter-spacing:.04em}
 
   /* gap servo bar */
   .servo-track{position:relative; height:12px; border-radius:7px; background:#0c1014; border:1px solid var(--line2); overflow:hidden; margin:14px 0 6px}
@@ -235,6 +239,32 @@
   ::-webkit-scrollbar{width:10px;height:10px}
   ::-webkit-scrollbar-thumb{background:var(--line2); border-radius:8px}
   ::-webkit-scrollbar-track{background:transparent}
+
+  /* workbench chip "busy" flash when a command arrives from the workspace */
+  .dot.busy{background:var(--spark); box-shadow:0 0 12px var(--spark); animation:busyflash .5s ease 2}
+  @keyframes busyflash{0%,100%{transform:scale(1)}50%{transform:scale(1.7)}}
+
+  /* toast notifications (top-right) — fire on Microspark Workbench events */
+  #toasts{position:fixed; top:72px; right:18px; display:flex; flex-direction:column; gap:10px; z-index:60; width:330px; max-width:calc(100vw - 36px); pointer-events:none}
+  .toast{
+    pointer-events:auto; display:flex; gap:12px; align-items:flex-start; padding:12px 14px;
+    border:1px solid var(--line2); border-left:3px solid var(--accentc, var(--spark)); border-radius:11px;
+    background:linear-gradient(180deg,#171c24,#11151b); box-shadow:0 10px 34px rgba(0,0,0,.5);
+    animation:toastin .34s cubic-bezier(.2,.8,.2,1); overflow:hidden;
+  }
+  .toast.out{animation:toastout .3s cubic-bezier(.4,0,1,1) forwards}
+  .toast .ic{width:26px;height:26px;flex:0 0 auto;border-radius:7px; display:grid; place-items:center;
+    font-family:var(--disp); font-weight:700; font-size:13px; color:var(--accentc, var(--spark));
+    background:color-mix(in srgb, var(--accentc, var(--spark)) 16%, transparent); border:1px solid color-mix(in srgb, var(--accentc, var(--spark)) 40%, transparent)}
+  .toast .bd{min-width:0; flex:1}
+  .toast .ti{font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted)}
+  .toast .ms{font-family:var(--sans); font-size:13px; color:var(--text); margin-top:2px; line-height:1.35; word-break:break-word}
+  .toast .x{font-family:var(--mono); color:var(--faint); cursor:pointer; padding:0 2px; font-size:14px}
+  .toast .x:hover{color:var(--text)}
+  .toast.wb{--accentc:var(--spark)} .toast.info{--accentc:var(--open)} .toast.good{--accentc:var(--healthy)}
+  .toast.warn{--accentc:var(--arc)} .toast.bad{--accentc:var(--fault)}
+  @keyframes toastin{from{opacity:0; transform:translateX(36px)}to{opacity:1; transform:none}}
+  @keyframes toastout{to{opacity:0; transform:translateX(36px); max-height:0; margin-bottom:-10px; padding-top:0; padding-bottom:0}}
 </style>
 </head>
 <body>
@@ -254,6 +284,7 @@
       </div>
     </div>
     <div class="grow"></div>
+    <span class="chip" id="wbchip" title="Microspark Workbench desktop app"><span class="dot" id="wbdot"></span><span id="wbtxt">Workbench</span></span>
     <span class="chip" id="connchip"><span class="dot" id="conndot"></span><span id="conntxt">Link…</span></span>
     <span class="chip" id="statechip"><span class="dot" id="statedot"></span><span id="statetxt">—</span></span>
     <div class="modeswitch" id="modeswitch">
@@ -340,13 +371,25 @@
         </div>
 
         <div class="panel col-4 fade">
-          <p class="ttl">Pulse classification · last window</p>
+          <p class="ttl">Pulse classification · live + ø rolling avg</p>
           <div class="clf">
-            <div class="bar"><div class="fill bn" id="clf_n" style="height:6%;background:var(--healthy)"></div><div class="pct bn" id="clfp_n">0</div><div class="cap">Normal</div></div>
-            <div class="bar"><div class="fill ba" id="clf_a" style="height:6%;background:var(--arc)"></div><div class="pct ba" id="clfp_a">0</div><div class="cap">Arc</div></div>
-            <div class="bar"><div class="fill bs" id="clf_s" style="height:6%;background:var(--fault)"></div><div class="pct bs" id="clfp_s">0</div><div class="cap">Short</div></div>
-            <div class="bar"><div class="fill bo" id="clf_o" style="height:6%;background:var(--open)"></div><div class="pct bo" id="clfp_o">0</div><div class="cap">Open</div></div>
+            <div class="bar"><div class="track"><div class="fill" id="clf_n" style="height:6%;background:var(--healthy)"></div><div class="avg" id="clfa_n" style="bottom:6%"></div></div><div class="pct bn" id="clfp_n">0<small> ø0</small></div><div class="cap">Normal</div></div>
+            <div class="bar"><div class="track"><div class="fill" id="clf_a" style="height:6%;background:var(--arc)"></div><div class="avg" id="clfa_a" style="bottom:6%"></div></div><div class="pct ba" id="clfp_a">0<small> ø0</small></div><div class="cap">Arc</div></div>
+            <div class="bar"><div class="track"><div class="fill" id="clf_s" style="height:6%;background:var(--fault)"></div><div class="avg" id="clfa_s" style="bottom:6%"></div></div><div class="pct bs" id="clfp_s">0<small> ø0</small></div><div class="cap">Short</div></div>
+            <div class="bar"><div class="track"><div class="fill" id="clf_o" style="height:6%;background:var(--open)"></div><div class="avg" id="clfa_o" style="bottom:6%"></div></div><div class="pct bo" id="clfp_o">0<small> ø0</small></div><div class="cap">Open</div></div>
           </div>
+        </div>
+
+        <div class="panel col-4 fade" style="animation-delay:.05s">
+          <p class="ttl">Process statistics · this cut</p>
+          <div class="kv"><span class="label">Cut time</span><span class="v" id="st_time">—</span></div>
+          <div class="kv"><span class="label">Pulses</span><span class="v" id="st_pulses">0</span></div>
+          <div class="kv"><span class="label">Avg normal / arc</span><span class="v"><span style="color:var(--healthy)" id="st_an">—</span> / <span style="color:var(--arc)" id="st_aa">—</span></span></div>
+          <div class="kv"><span class="label">Avg short / open</span><span class="v"><span style="color:var(--fault)" id="st_as">—</span> / <span style="color:var(--open)" id="st_ao">—</span></span></div>
+          <div class="kv"><span class="label">Short events</span><span class="v" id="st_short">0</span></div>
+          <div class="kv"><span class="label">Retractions</span><span class="v" id="st_retr">0</span></div>
+          <div class="kv"><span class="label">Energy delivered</span><span class="v" id="st_energy">0 mJ</span></div>
+          <div class="kv"><span class="label">Avg feed / peak N</span><span class="v" id="st_fp">— / —</span></div>
         </div>
 
         <div class="panel col-4 fade" style="animation-delay:.05s">
@@ -448,6 +491,8 @@
 
 <div class="locktag" id="locktag"><span class="dot" style="background:var(--spark)"></span>Customer mode · controls locked</div>
 
+<div id="toasts"></div>
+
 <!-- operator passcode -->
 <div class="modal" id="pinmodal">
   <div class="box">
@@ -479,7 +524,7 @@ const lerp = (a,b,t) => a+(b-a)*t;
    If no socket (opened as a file / demo), we fall back to MockMachine.
    ===================================================================== */
 class FluidEdmClient {
-  constructor(onReport, onLog){ this.onReport=onReport; this.onLog=onLog; this.ws=null; this.live=false; }
+  constructor(onReport, onLog, onEvent){ this.onReport=onReport; this.onLog=onLog; this.onEvent=onEvent; this.ws=null; this.live=false; }
   connect(){
     const host = location.host || "";
     if(!host || location.protocol==="file:"){ this.onLog("No host — running demo (mock machine).","m"); return false; }
@@ -498,9 +543,10 @@ class FluidEdmClient {
     // [MSG:JSON:...]{...,"type":"edm_update",...} and we route on the embedded "type"
     // (or the presence of controller_state) rather than the exact bracket tag.
     const m = data.match(/\[MSG:JSON[^\]]*\](\{.*\})/);
-    if(m){ try{ const o=JSON.parse(m[1]);
-      if(o.type==="edm_update"||o.type==="edm_full_status"||o.controller_state!==undefined) this.onReport(o);
-    }catch(_){} return; }
+    if(!m) return;
+    let o; try{ o=JSON.parse(m[1]); }catch(_){ return; }
+    if(o.type==="edm_event"){ if(this.onEvent) this.onEvent(o); return; }   // Workbench-sourced control/program
+    if(o.type==="edm_update"||o.type==="edm_full_status"||o.controller_state!==undefined) this.onReport(o);
     // (status "<...>" parsing for MPos/state would go here)
   }
   send(cmd){ if(this.live&&this.ws) this.ws.send(cmd+"\n"); this.onLog("» "+cmd,"m"); }
@@ -514,6 +560,7 @@ class MockMachine {
   constructor(emit){
     this.emit=emit; this.reset();
     this.tensionSet=5.0; this.modeS=300; this.mode_id=2;
+    this.wb={connected:false}; this.onWorkbench=null; this._wbCd=2.2;  // Workbench connects ~2s in
   }
   reset(){
     this.run=false; this.paused=false; this.s=0; this.L=100; this.fault=null;
@@ -528,8 +575,37 @@ class MockMachine {
   resetWire(){ this.collapse=false; if(this.fault==="Wire collapse"){ this.fault=null; } }
   clearFault(){ this.fault=null; if(this.cstate==="Fault") this.cstate="Idle"; }
 
+  // Microspark Workbench (desktop app) sends a program/control over the same link.
+  _doWorkbenchAction(){
+    const jobs=["gear_z18.nc","punch_die.nc","taper_15deg.nc","slot_20mm.nc"];
+    if(!this.run && !this.fault){
+      const j=jobs[Math.floor(Math.random()*jobs.length)]; this._wbJob=j;
+      this.onWorkbench && this.onWorkbench("program", j);              // "programme sent"
+      setTimeout(()=>{ if(!this.run && !this.fault){
+        const s=[60,300,900][Math.floor(Math.random()*3)];
+        this.modeS=s; this.mode_id=s>=900?1:s>=100?2:3; this.start();
+        this.onWorkbench && this.onWorkbench("run", j+" @ S"+s);       // "control activated"
+      }}, 1500);
+    } else if(this.run && !this.paused){
+      const r=Math.random();
+      if(r<0.4){ const s=[60,300,900][Math.floor(Math.random()*3)]; this.modeS=s; this.mode_id=s>=900?1:s>=100?2:3;
+        this.onWorkbench && this.onWorkbench("mode", s>=900?"Rough · S900":s>=100?"Finish · S300":"Ignite · S60"); }
+      else if(r<0.72){ this.tensionSet=Math.round((3+Math.random()*5)*2)/2;
+        this.onWorkbench && this.onWorkbench("tension", this.tensionSet.toFixed(1)); }
+      else { this.pause(); this.onWorkbench && this.onWorkbench("hold");
+        setTimeout(()=>{ if(this.run){ this.resume(); this.onWorkbench && this.onWorkbench("resume"); } }, 2600); }
+    }
+  }
+
   tick(dt){
     this._t+=dt; this.window++;
+    // --- Microspark Workbench presence + activity ---
+    this._wbCd-=dt;
+    if(!this.wb.connected){
+      if(this._wbCd<=0){ this.wb.connected=true; this._wbCd=16+Math.random()*12; this.onWorkbench&&this.onWorkbench("connect"); }
+    } else if(this._wbCd<=0){
+      this._wbCd=14+Math.random()*16; this._doWorkbenchAction();
+    }
     let n=6,a=8,sh=6,op=80, vs=0;     // classifier counts (sum ~100), gap servo µm/s
     const noise=(amp)=>(Math.random()-0.5)*amp;
 
@@ -599,6 +675,7 @@ class MockMachine {
       temp_gan_c:this.tgan, mode_id:this.mode_id,
       connected:true, fault: this.fault,
       x:this.x, y:this.y, u:this.u, v:this.v,
+      workbench:{connected:this.wb.connected},
       paused:this.paused, running:this.run, job_len:this.L
     };
     this.emit(rep);
@@ -612,14 +689,29 @@ class MockMachine {
    amber; short -> red bridge; open -> dim, few. Lives in <canvas>.
    ===================================================================== */
 class SparkGap{
-  constructor(canvas){ this.c=canvas; this.ctx=canvas.getContext("2d"); this.parts=[]; this.state={n:.06,a:.08,s:.06,o:.8,active:false,sev:0,short:false};
-    this.dpr=Math.min(devicePixelRatio||1,2); this._resize(); addEventListener("resize",()=>this._resize());
+  constructor(canvas){ this.c=canvas; this.ctx=canvas.getContext("2d"); this.parts=[];
+    this.cur={n:.06,a:.08,s:.06,o:.8}; this.tgt={n:.06,a:.08,s:.06,o:.8};
+    this.active=false; this.collapse=false; this.sev=0;
+    this.dpr=Math.min(devicePixelRatio||1,2); this._resize();
+    addEventListener("resize",()=>this._resize());
+    // Re-fit the backing store whenever the element resizes — crucial for the operator
+    // canvas, which is display:none at load (0 size) and would otherwise stay low-res and
+    // blurry the first time the operator page is shown. This makes it as sharp as customer.
+    if(window.ResizeObserver){ this._ro=new ResizeObserver(()=>this._resize()); this._ro.observe(canvas); }
   }
-  _resize(){ const r=this.c.getBoundingClientRect(); this.c.width=Math.max(40,r.width*this.dpr); this.c.height=Math.max(40,r.height*this.dpr); }
-  set(rep){ const t=rep.total_pulses||1; this.state={ n:rep.n_normal/t, a:rep.n_arc/t, s:rep.n_short/t, o:rep.n_open/t,
-      active:!!rep.running && !rep.paused, sev:rep.wire_break_sev||0, short:(rep.n_short/t)>0.25, collapse:!!rep.tension_collapse }; }
+  _resize(){ const r=this.c.getBoundingClientRect(); if(r.width<2||r.height<2) return;
+    const w=Math.round(r.width*this.dpr), h=Math.round(r.height*this.dpr);
+    if(w!==this.c.width||h!==this.c.height){ this.c.width=w; this.c.height=h; } }
+  set(rep){ const t=rep.total_pulses||1;
+    this.tgt={ n:rep.n_normal/t, a:rep.n_arc/t, s:rep.n_short/t, o:rep.n_open/t };
+    this.active=!!rep.running && !rep.paused; this.sev=rep.wire_break_sev||0; this.collapse=!!rep.tension_collapse; }
   frame(){
-    const ctx=this.ctx, W=this.c.width, H=this.c.height, st=this.state;
+    // Ease the displayed classifier mix toward the target so fast telemetry updates don't
+    // make the gap flicker — keeps the operator visualization as smooth as the customer one.
+    const k=0.08, cu=this.cur, tg=this.tgt;
+    cu.n+=(tg.n-cu.n)*k; cu.a+=(tg.a-cu.a)*k; cu.s+=(tg.s-cu.s)*k; cu.o+=(tg.o-cu.o)*k;
+    const st={ n:cu.n, a:cu.a, s:cu.s, o:cu.o, active:this.active, sev:this.sev, collapse:this.collapse, short:cu.s>0.22 };
+    const ctx=this.ctx, W=this.c.width, H=this.c.height;
     ctx.clearRect(0,0,W,H);
     const wireX=W*0.30, gapW=W*0.16, workX=wireX+gapW;
     // dielectric shimmer
@@ -672,6 +764,42 @@ class SparkGap{
   }
 }
 
+/* =====================================================================
+   Stats — rolling averages on the pulse classes + per-cut statistics.
+   `avg` is an EWMA (smooth marker line on the bars); `live` is a faster EWMA
+   used for the bar fill so it doesn't flicker; cumulative sums give the cut
+   averages/counters. Reset at the start of each cut.
+   ===================================================================== */
+class Stats{
+  constructor(){ this.kAvg=0.025; this.kLive=0.22; this.reset(true); }
+  reset(initial){
+    this.t0=null; this.windows=0; this.pulses=0;
+    this.cn=0; this.ca=0; this.cs=0; this.co=0;
+    this.shortWin=0; this.retractWin=0; this.energyUj=0; this.feedSum=0; this.feedN=0; this.tensPeak=0;
+    if(initial){ this.avg={n:6,a:8,s:6,o:80}; this.live={n:6,a:8,s:6,o:80}; }
+  }
+  update(rep){
+    const t=rep.total_pulses||1;
+    const rn=rep.n_normal/t*100, ra=rep.n_arc/t*100, rs=rep.n_short/t*100, ro=rep.n_open/t*100;
+    const a=this.avg, l=this.live, ka=this.kAvg, kl=this.kLive;
+    a.n+=(rn-a.n)*ka; a.a+=(ra-a.a)*ka; a.s+=(rs-a.s)*ka; a.o+=(ro-a.o)*ka;
+    l.n+=(rn-l.n)*kl; l.a+=(ra-l.a)*kl; l.s+=(rs-l.s)*kl; l.o+=(ro-l.o)*kl;
+    if(rep.running && !rep.paused){
+      if(this.t0==null) this.t0=performance.now();
+      this.windows++; this.pulses+=rep.total_pulses;
+      this.cn+=rep.n_normal; this.ca+=rep.n_arc; this.cs+=rep.n_short; this.co+=rep.n_open;
+      if(rs>25) this.shortWin++;
+      if(rep.v_cmd_um_s<0) this.retractWin++;
+      this.energyUj+=rep.energy_uj||0;
+      if(rep.feed_mm_min>0){ this.feedSum+=rep.feed_mm_min; this.feedN++; }
+      if(rep.tension_N>this.tensPeak) this.tensPeak=rep.tension_N;
+    }
+  }
+  cutPct(){ const tp=(this.cn+this.ca+this.cs+this.co)||1; return {n:this.cn/tp*100,a:this.ca/tp*100,s:this.cs/tp*100,o:this.co/tp*100}; }
+  elapsed(){ return this.t0? (performance.now()-this.t0)/1000 : 0; }
+}
+const stats=new Stats();
+
 /* ===================== UI wiring ===================== */
 const state={ mode:"customer", stepMM:0.1, modeS:300 };
 const logEl=$("#log"); let logLines=[];
@@ -696,7 +824,48 @@ function pip(el, level){ // level: 'ok'|'warn'|'bad'|'idle'
   el.className="dot "+(level==='ok'?'live':level==='warn'?'warn':level==='bad'?'bad':'');
 }
 
+/* ---- toast notifications (fired on Microspark Workbench events) ---- */
+const toastsEl=$("#toasts");
+const TOAST_GLYPH={wb:"⇄",info:"i",good:"✓",warn:"!",bad:"✕"};
+function toast(kind, title, msg, ttl=5200){
+  if(!toastsEl) return;
+  const el=document.createElement("div");
+  el.className="toast "+kind;
+  el.innerHTML=`<div class="ic">${TOAST_GLYPH[kind]||"•"}</div><div class="bd"><div class="ti">${title}</div><div class="ms">${msg}</div></div><div class="x">✕</div>`;
+  const kill=()=>{ el.classList.add("out"); setTimeout(()=>el.remove(),300); };
+  el.querySelector(".x").addEventListener("click",kill);
+  toastsEl.appendChild(el);
+  while(toastsEl.children.length>4) toastsEl.firstChild.remove();
+  setTimeout(kill, ttl);
+}
+
+/* A control or program arriving from the Microspark Workbench desktop app.
+   The firmware tags Workbench-originated commands and broadcasts them as
+   [MSG:JSON:...]{"type":"edm_event","src":"workbench","kind":...,"detail":...};
+   the mock generates the same. We surface them as toasts + flash the chip. */
+let wbBusyUntil=0;
+const WB_MSG={
+  connect:    {k:"good", t:"Microspark Workbench", m:()=>"Connected"},
+  disconnect: {k:"warn", t:"Microspark Workbench", m:()=>"Disconnected"},
+  program:    {k:"wb",   t:"Program sent",          m:d=>`Loaded from Workbench · ${d}`},
+  run:        {k:"wb",   t:"Control · Workbench",    m:d=>`Run started${d?" · "+d:""}`},
+  hold:       {k:"wb",   t:"Control · Workbench",    m:()=>"Feed hold"},
+  resume:     {k:"wb",   t:"Control · Workbench",    m:()=>"Cycle resumed"},
+  stop:       {k:"wb",   t:"Control · Workbench",    m:()=>"Stopped"},
+  mode:       {k:"wb",   t:"Control · Workbench",    m:d=>`EDM mode → ${d}`},
+  tension:    {k:"wb",   t:"Control · Workbench",    m:d=>`Tension setpoint → ${d} N`},
+  jog:        {k:"wb",   t:"Control · Workbench",    m:d=>`Jog ${d}`},
+};
+function workbenchEvent(kind, detail){
+  const e=WB_MSG[kind]||{k:"wb",t:"Microspark Workbench",m:()=>String(kind)};
+  const msg = e.m(detail);
+  toast(e.k, e.t, msg);
+  if(kind!=="connect"&&kind!=="disconnect") wbBusyUntil=performance.now()+1100;
+  log(`[Workbench] ${msg}`, kind==="stop"?"badv":kind==="hold"||kind==="disconnect"?"warnv":"okv");
+}
+
 function render(rep){
+  stats.update(rep);
   // ---- header chips ----
   const cs=rep.controller_state;
   $("#statetxt").textContent=(cs||"—").toUpperCase();
@@ -704,6 +873,10 @@ function render(rep){
   sd.className="dot "+(rep.fault?"bad":cs==="Cutting"||cs==="TouchOff"?"live":cs==="Hold"||cs==="BreakRelief"?"warn":"");
   $("#conntxt").textContent= rep.connected? (client.live?"Live":"Demo"):"Offline";
   $("#conndot").className="dot "+(rep.connected?"live":"bad");
+  // ---- Microspark Workbench chip ----
+  const wb=rep.workbench||{connected:false};
+  $("#wbdot").className = (performance.now()<wbBusyUntil)?"dot busy":(wb.connected?"dot live":"dot");
+  $("#wbtxt").textContent = wb.connected? "Workbench" : "No Workbench";
 
   // ---- fault banner ----
   const fb=$("#faultbar");
@@ -750,11 +923,27 @@ function render(rep){
   $("#o_cstate").textContent=(cs||"IDLE").toUpperCase();
   $("#o_cstate").style.color = rep.fault?"var(--fault)":cs==="Cutting"?"var(--spark)":cs==="Complete"?"var(--healthy)":"var(--text)";
   const P=2*Math.PI*50; $("#o_progring").style.strokeDashoffset=P*(1-pct/100); $("#o_progpct").textContent=Math.round(pct)+"%";
-  // classifier
-  const t=rep.total_pulses||1;
-  const setbar=(id,pid,val)=>{ const p=Math.round(val/t*100); $(id).style.height=clamp(p,2,100)+"%"; $(pid).textContent=p; };
-  setbar("#clf_n","#clfp_n",rep.n_normal); setbar("#clf_a","#clfp_a",rep.n_arc);
-  setbar("#clf_s","#clfp_s",rep.n_short); setbar("#clf_o","#clfp_o",rep.n_open);
+  // classifier — smoothed live fill + pct, rolling-average (ø) marker line
+  const L=stats.live, A=stats.avg;
+  const setbar=(fillId,avgId,pctId,live,avg)=>{
+    $(fillId).style.height=clamp(live,2,100)+"%";
+    $(avgId).style.bottom=clamp(avg,0,100)+"%";
+    $(pctId).innerHTML=Math.round(live)+'<small> ø'+Math.round(avg)+'</small>';
+  };
+  setbar("#clf_n","#clfa_n","#clfp_n",L.n,A.n);
+  setbar("#clf_a","#clfa_a","#clfp_a",L.a,A.a);
+  setbar("#clf_s","#clfa_s","#clfp_s",L.s,A.s);
+  setbar("#clf_o","#clfa_o","#clfp_o",L.o,A.o);
+  // process statistics
+  const sw=stats.windows, pp=x=>sw?Math.round(x)+"%":"—";
+  $("#st_time").textContent=stats.t0?fmtT(stats.elapsed()):"—";
+  $("#st_pulses").textContent=fmtK(stats.pulses);
+  const cp=stats.cutPct();
+  $("#st_an").textContent=pp(cp.n); $("#st_aa").textContent=pp(cp.a);
+  $("#st_as").textContent=pp(cp.s); $("#st_ao").textContent=pp(cp.o);
+  $("#st_short").textContent=stats.shortWin; $("#st_retr").textContent=stats.retractWin;
+  $("#st_energy").textContent=fmtEnergy(stats.energyUj);
+  $("#st_fp").textContent=(stats.feedN?Math.round(stats.feedSum/stats.feedN)+" mm/min":"—")+" / "+(stats.tensPeak>0?stats.tensPeak.toFixed(1)+" N":"—");
   // tension gauge
   const tr=$("#o_tensring"), tp=clamp(rep.tension_N/10,0,1);
   tr.style.strokeDashoffset=P*(1-tp); tr.style.stroke= rep.tension_collapse?"var(--fault)":Math.abs(rep.tension_N-rep.tension_set_N)>1.5?"var(--arc)":"var(--healthy)";
@@ -773,11 +962,14 @@ function render(rep){
 }
 
 function fmtT(s){ s=Math.max(0,s|0); const m=(s/60)|0; const ss=s%60; return m+"m "+(ss<10?"0":"")+ss+"s"; }
+function fmtK(n){ return n>=1e6?(n/1e6).toFixed(2)+"M":n>=1e3?(n/1e3).toFixed(1)+"k":String(n); }
+function fmtEnergy(uj){ const mj=uj/1000; return mj>=1000?(mj/1000).toFixed(2)+" J":mj>=1?mj.toFixed(1)+" mJ":Math.round(uj)+" µJ"; }
 
 /* ---- mock wiring ---- */
 const mock=new MockMachine(rep=>{ render(rep); });
 mock.emit._event=(sev)=>{ log(`Wire-break imminent — severity ${sev} → feed cap ${sev>=3?0:sev===2?30:60}%`, sev>=3?'badv':'warnv'); };
-const client=new FluidEdmClient(rep=>render(rep), (m,c)=>log(m,c));
+mock.onWorkbench=(kind,detail)=>{ workbenchEvent(kind,detail); if(kind==="run"){ stats.reset(); state._t0=performance.now(); } };
+const client=new FluidEdmClient(rep=>render(rep), (m,c)=>log(m,c), ev=>{ if(!ev.src||ev.src==="workbench") workbenchEvent(ev.kind, ev.detail); });
 
 /* drive: prefer live client; else mock at ~12 Hz */
 const liveAttempt=client.connect();
@@ -815,12 +1007,12 @@ $("#pincancel").addEventListener("click",()=>$("#pinmodal").classList.remove("sh
 $("#pin").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#pinok").click(); });
 
 // customer controls
-$("#c_start").addEventListener("click",()=>{ state._t0=performance.now(); mock.start(); send("M3 S"+state.modeS); send("$Job/Run="+$("#c_job").textContent); log("Job started: "+$("#c_job").textContent,"okv"); });
+$("#c_start").addEventListener("click",()=>{ state._t0=performance.now(); stats.reset(); mock.start(); send("M3 S"+state.modeS); send("$Job/Run="+$("#c_job").textContent); log("Job started: "+$("#c_job").textContent,"okv"); });
 $("#c_pause").addEventListener("click",()=>{ if(mock.paused){mock.resume();send("~");log("Resumed","ev");} else {mock.pause();send("!");log("Paused","warnv");} });
 $("#c_stop").addEventListener("click",()=>{ mock.stop(); mock.clearFault(); send("M5"); send("$Job/Stop"); log("Stopped","badv"); });
 
 // operator: run controls
-$("#o_run").addEventListener("click",()=>{ state._t0=performance.now(); mock.modeS=state.modeS; mock.mode_id=state.modeS>=900?1:state.modeS>=100?2:3; mock.start(); send("M3 S"+state.modeS); send("$Job/Run="+$("#jobsel").value); log("Run: "+$("#jobsel").value+" @ S"+state.modeS,"okv"); });
+$("#o_run").addEventListener("click",()=>{ state._t0=performance.now(); stats.reset(); mock.modeS=state.modeS; mock.mode_id=state.modeS>=900?1:state.modeS>=100?2:3; mock.start(); send("M3 S"+state.modeS); send("$Job/Run="+$("#jobsel").value); log("Run: "+$("#jobsel").value+" @ S"+state.modeS,"okv"); });
 $("#o_hold").addEventListener("click",()=>{ mock.pause(); send("!"); log("Feed hold","warnv"); });
 $("#o_resume").addEventListener("click",()=>{ mock.resume(); send("~"); log("Cycle start","ev"); });
 $("#o_stop").addEventListener("click",()=>{ mock.stop(); mock.clearFault(); send("M5"); log("Stop","badv"); });
@@ -857,6 +1049,14 @@ log(liveAttempt?"Connecting to firmware…":"Demo mode — simulated machine.","
   4. Firmware side (phase P4): EdmReportChannel pushes [MSG:JSON:edm_update]{…EdmReport…}
      on Channel::autoReport at report_hz; $EDM/Status, $EDM/TouchOff, $EDM/Tension=,
      $EDM/ResetWireFeed are registered there. This page already speaks that protocol.
+  5. Microspark Workbench presence + notifications:
+     - Add a "workbench":{"connected":bool} object to the edm_update report so the header
+       chip reflects whether the Workbench desktop app is on the link (track its WS client).
+     - When a command/program originates from the Workbench, broadcast a discrete event:
+       [MSG:JSON:...]{"type":"edm_event","src":"workbench","kind":"program|run|hold|resume|
+       stop|mode|tension|jog","detail":"<job or value>"}. This page renders each as a toast
+       and flashes the Workbench chip. (kind/detail map to the WB_MSG table in the script.)
 -->
+
 </body>
 </html>
