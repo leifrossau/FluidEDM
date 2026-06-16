@@ -6,3 +6,7 @@ fp-info-cache
 *.kicad_prl
 *.lck
 _autosave-*
+tools/
+*.lck
+*-fab/
+*-fab.zip
