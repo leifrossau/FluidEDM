@@ -86,6 +86,27 @@ to named nets for review.
 values, creepage/clearance distances, isolation component ratings, thermal/heatsink design,
 EMI filtering, and ALL routing. These are the items a power engineer must own.
 
+## 7b. Schematic & ERC status (2026-06-16)
+The board is now generated **schematic-first** (`generate.py`, replacing the old PCB-only
+`generate_board.py`) with **real library symbols** so every pin assignment is explicit and
+reviewable: STM32G474CBTx, UCC21520 isolated gate driver, AMC1300B isolated current/voltage
+amps, ADuM1402 digital isolator, TJA1051 FDCAN, AMS1117, Q_NMOS (SiC placeholder), TVS, etc.
+The schematic is organized into 5 functional blocks with power-port glyphs and a title block
+(`MS-EDM-PSU.sch.pdf`). **ERC: 0 errors.** Documented benign warnings:
+- **3× `ground_pin_not_ground`** — the iso amps' / digital isolator's **HV-side grounds** (U11/U12
+  GND1, U13 GND2) sit on the `HV-` domain, which is *deliberately isolated* from logic `GND`. This
+  warning is the isolation barrier working as intended.
+- **`lib_symbol_mismatch`** — flatten-vs-`extends` cache artifact on a few generic symbols
+  (Q_NMOS_GSD, D_TVS, D_Schottky, C_Polarized); zero effect on netlist/fab; "Update Symbols from
+  Library" reconciles in the GUI.
+
+Still **[REVIEW]** and **deferred to a power-electronics engineer**: the isolated gate-drive +
+sense supplies (`GDRV_VDD`, `ISO_HV_VDD` are PWR_FLAG'd as external/deferred), SiC part + SOA,
+snubber values, gap-voltage divider ratio (`Rvd1/Rvd2`), creepage/clearance, thermals, and **all
+routing**. STM32 peripheral pin choices (HRTIM→PA8, ADC→PA0-3, FDCAN→PB8/9, SWD→PA13/14) are
+plausible defaults to confirm against the final firmware. **This board is NOT autorouted and NOT
+fabrication-ready** — see the warning banner at the top.
+
 ## 8. Bring-up safety order (when hardware exists)
 1. Logic + CAN only (no HV) → confirm contract handshake with the PiBot using firmware `SimPsuLink` parity.
 2. HV bus at LOW voltage through a current-limited bench supply, no gap → verify switch + sense + OC latch.

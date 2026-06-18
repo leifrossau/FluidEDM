@@ -208,7 +208,8 @@ class Comp:
 # net labels, and only nets explicitly marked global get the heavy global-label arrows.
 _GND_SYMBOL = {            # net name -> KiCad power.kicad_sym ground glyph
     "GND": "GND", "AGND": "GNDA", "GNDA": "GNDA", "DGND": "GND",
-    "PGND": "GNDPWR", "GNDPWR": "GNDPWR", "HV_GND": "GNDPWR", "EARTH": "Earth",
+    "PGND": "GNDPWR", "GNDPWR": "GNDPWR", "HV_GND": "GNDPWR", "HV-": "GNDPWR",
+    "EARTH": "Earth",
 }
 # rail glyphs are looked up by the net name itself ("+3V3", "+5V", "+24V", ...);
 # any that exist in power.kicad_sym work. This set just marks which names are rails.

@@ -1,15 +1,22 @@
 qty,value,footprint,refs
+1,100k_bleed,R_2512_6332Metric,R20
 4,100nF,C_0805_2012Metric,C1 C2 C3 C5
+1,10R_gate,R_0805_2012Metric,Rg10
 3,10uF,C_0805_2012Metric,C4 C6 C7
-1,120R_term,R_0805_2012Metric,R3
+1,120R,R_0805_2012Metric,R3
+1,1M_HVdiv,R_2512_6332Metric,Rvd1
 2,1k,R_0805_2012Metric,R4 R5
+1,1uF_film,C_1210_3225Metric,C22
+2,220uF,CP_Radial_D10.0mm_P5.00mm,C20 C21
 1,24MHz,Crystal_SMD_3225-4Pin_3.2x2.5mm,Y1
+1,3k9_HVdiv,R_0805_2012Metric,Rvd2
+1,5mR_shunt,R_2512_6332Metric,R22
 1,AMS1117-3.3,SOT-223-3_TabPin2,U3
 1,CAN,"TerminalBlock_Phoenix_MPT-0,5-3-2.54_1x03_P2.54mm_Horizontal",J3
 1,DIGITAL_ISOLATOR,SOIC-16_3.9x9.9mm_P1.27mm,U13
-1,FUSE_placeholder,R_2512_6332Metric,F1
-1,GAP_OUT__wire_work,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J2
-1,HV_DC_IN__60-120V,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J1
+1,FUSE,R_2512_6332Metric,F1
+1,GAP_OUT_wire_work,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J2
+1,HV_DC_IN_60-120V,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J1
 1,HV_TVS,D_SMC,D10
 1,ISO_CURRENT_AMP,SOIC-8_3.9x4.9mm_P1.27mm,U11
 1,ISO_GATE_DRIVER,SOIC-16W_7.5x10.3mm_P1.27mm,U10
@@ -19,15 +26,10 @@ qty,value,footprint,refs
 1,LOGIC_5V_IN,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J4
 4,M3,MountingHole_3.2mm_M3,MH1 MH2 MH3 MH4
 1,NTC_TEMP,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J6
-1,STM32G474,LQFP-48_7x7mm_P0.5mm,U1
+1,STM32G474CBTx,LQFP-48_7x7mm_P0.5mm,U1
 1,SWD,PinHeader_1x05_P2.54mm_Vertical,J5
 1,SiC_MOSFET,TO-247-3_Vertical,Q1
-1,SiC_freewheel,TO-220-3_Vertical,D11
-1,TJA1051,SOIC-8_3.9x4.9mm_P1.27mm,U2
-1,bleeder,R_2512_6332Metric,R20
-2,bulk_220uF,CP_Radial_D10.0mm_P5.00mm,C20 C21
-1,film_1uF,R_2512_6332Metric,C22
-1,gate_R,R_0805_2012Metric,Rg10
-1,shunt_R,R_2512_6332Metric,R22
+1,SiC_freewheel,D_SMC,D11
+1,TJA1051T-3,SOIC-8_3.9x4.9mm_P1.27mm,U2
 1,snubber_C,C_0805_2012Metric,C23
 1,snubber_R,R_2512_6332Metric,R21
