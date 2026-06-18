@@ -1,16 +1,19 @@
 qty,value,footprint,refs
 6,100R,R_0805_2012Metric,Rb4 Rb5 Rb6 Rg1 Rg2 Rg3
 4,100nF,C_0805_2012Metric,C1 C10 C4 C9
-2,10k,R_0805_2012Metric,R1 R2
+6,10k,R_0805_2012Metric,R1 R2 R8 Rc1 Rl1 Rp1
 3,10uF,C_0805_2012Metric,C2 C7 C8
 1,10uH,L_7.3x7.3_H3.5,L1
 1,120R,R_0805_2012Metric,R3
 2,18pF,C_0805_2012Metric,C11 C12
+3,1N4007,D_SMA,D1 D2 D3
 1,1uF,C_0805_2012Metric,C3
+3,20k,R_0805_2012Metric,Rc2 Rl2 Rp2
 2,22uF,C_0805_2012Metric,C5 C6
 1,24V_IN,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J1
 1,40MHz,Crystal_SMD_3215-2Pin_3.2x1.5mm,Y1
 1,4k7,R_0805_2012Metric,R4
+1,75k,R_0805_2012Metric,R7
 1,AMS1117-3.3,SOT-223-3_TabPin2,U5
 1,ANALOG_SENSORS,JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical,J5
 6,AO3400A,SOT-23,Q1 Q2 Q3 Q4 Q5 Q6
@@ -19,8 +22,6 @@ qty,value,footprint,refs
 1,B340,D_SMA,D6
 1,CAN,"TerminalBlock_Phoenix_MPT-0,5-3-2.54_1x03_P2.54mm_Horizontal",J2
 1,ESP32-S3-WROOM-1,ESP32-S3-WROOM-1,U1
-1,FB_bot,R_0805_2012Metric,R8
-1,FB_top,R_0805_2012Metric,R7
 1,FLOW_FLOATS,JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical,J7
 1,FLUSH_SOL,"TerminalBlock_Phoenix_MPT-0,5-6-2.54_1x06_P2.54mm_Horizontal",J3
 4,M3,MountingHole_3.2mm_M3,MH1 MH2 MH3 MH4
@@ -30,5 +31,3 @@ qty,value,footprint,refs
 1,SMBJ24A,D_SMA,D5
 1,TEMP_1WIRE,JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical,J6
 1,TJA1051T-3,SOIC-8_3.9x4.9mm_P1.27mm,U3
-6,div,R_0805_2012Metric,Rc1 Rc2 Rl1 Rl2 Rp1 Rp2
-3,fly,D_SMA,D1 D2 D3

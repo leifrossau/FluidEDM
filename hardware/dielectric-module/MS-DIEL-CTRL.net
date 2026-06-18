@@ -2,7 +2,7 @@
 	(version "E")
 	(design
 		(source "C:\\Users\\leif_\\OneDrive\\Dokumenter\\Projekter\\Microspark Workbench\\Microspark Firmware\\FluidEDM\\hardware\\dielectric-module\\MS-DIEL-CTRL.kicad_sch")
-		(date "2026-06-18T20:47:25")
+		(date "2026-06-18T21:02:45")
 		(tool "Eeschema 10.0.3")
 		(sheet
 			(number "1")
@@ -704,7 +704,7 @@
 		)
 		(comp
 			(ref "D1")
-			(value "fly")
+			(value "1N4007")
 			(footprint "Diode_SMD:D_SMA")
 			(fields
 				(field
@@ -758,7 +758,7 @@
 		)
 		(comp
 			(ref "D2")
-			(value "fly")
+			(value "1N4007")
 			(footprint "Diode_SMD:D_SMA")
 			(fields
 				(field
@@ -812,7 +812,7 @@
 		)
 		(comp
 			(ref "D3")
-			(value "fly")
+			(value "1N4007")
 			(footprint "Diode_SMD:D_SMA")
 			(fields
 				(field
@@ -2120,7 +2120,7 @@
 		)
 		(comp
 			(ref "R7")
-			(value "FB_top")
+			(value "75k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field
@@ -2174,7 +2174,7 @@
 		)
 		(comp
 			(ref "R8")
-			(value "FB_bot")
+			(value "10k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field
@@ -2390,7 +2390,7 @@
 		)
 		(comp
 			(ref "Rc1")
-			(value "div")
+			(value "10k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field
@@ -2444,7 +2444,7 @@
 		)
 		(comp
 			(ref "Rc2")
-			(value "div")
+			(value "20k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field
@@ -2660,7 +2660,7 @@
 		)
 		(comp
 			(ref "Rl1")
-			(value "div")
+			(value "10k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field
@@ -2714,7 +2714,7 @@
 		)
 		(comp
 			(ref "Rl2")
-			(value "div")
+			(value "20k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field
@@ -2768,7 +2768,7 @@
 		)
 		(comp
 			(ref "Rp1")
-			(value "div")
+			(value "10k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field
@@ -2822,7 +2822,7 @@
 		)
 		(comp
 			(ref "Rp2")
-			(value "div")
+			(value "20k")
 			(footprint "Resistor_SMD:R_0805_2012Metric")
 			(fields
 				(field

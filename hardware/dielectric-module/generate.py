@@ -54,7 +54,7 @@ part("U4", "AP3402", "Regulator_Switching", "AP3402", SOT, "SOT-23-6", 36, 14)
 part("L1", "10uH", DEV, "L", "Inductor_SMD", "L_7.3x7.3_H3.5", 48, 14)
 Dd("D6", "B340", 48, 22, sch="D_Schottky")
 Cc("C5", "22uF", 30, 22); Cc("C6", "22uF", 60, 22)
-R("R7", "FB_top", 28, 30); R("R8", "FB_bot", 28, 34)
+R("R7", "75k", 28, 30); R("R8", "10k", 28, 34)   # AP3402 FB divider -> ~5.1V (Vref 0.6V) [REVIEW]
 part("U5", "AMS1117-3.3", "Regulator_Linear", "AMS1117-3.3", SOT, "SOT-223-3_TabPin2", 70, 14)
 Cc("C7", "10uF", 64, 22); Cc("C8", "10uF", 78, 22)
 # CAN
@@ -72,7 +72,7 @@ part("J3", "FLUSH_SOL", "Connector_Generic", "Conn_01x06", "TerminalBlock_Phoeni
      "TerminalBlock_Phoenix_MPT-0,5-6-2.54_1x06_P2.54mm_Horizontal", 14, 92)
 Nfet("Q1", "AO3400A", 26, 78); Nfet("Q2", "AO3400A", 26, 83); Nfet("Q3", "AO3400A", 26, 88)
 R("Rg1", "100R", 33, 78); R("Rg2", "100R", 33, 83); R("Rg3", "100R", 33, 88)
-Dd("D1", "fly", 18, 78); Dd("D2", "fly", 18, 83); Dd("D3", "fly", 18, 88)
+Dd("D1", "1N4007", 18, 78); Dd("D2", "1N4007", 18, 83); Dd("D3", "1N4007", 18, 88)   # solenoid flyback (M7 SMA)
 # SSR drivers
 part("J4", "PUMP_CHILL_DEION", "Connector_Generic", "Conn_01x06", "TerminalBlock_Phoenix",
      "TerminalBlock_Phoenix_MPT-0,5-6-2.54_1x06_P2.54mm_Horizontal", 46, 92)
@@ -85,9 +85,10 @@ part("J6", "TEMP_1WIRE", "Connector_Generic", "Conn_01x04", "Connector_JST",
      "JST_XH_B4B-XH-A_1x04_P2.50mm_Vertical", 106, 90)
 part("J7", "FLOW_FLOATS", "Connector_Generic", "Conn_01x06", "Connector_JST",
      "JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical", 120, 92)
-R("Rp1", "div", 86, 78); R("Rp2", "div", 86, 82)
-R("Rl1", "div", 92, 78); R("Rl2", "div", 92, 82)
-R("Rc1", "div", 98, 78); R("Rc2", "div", 98, 82)
+# Sensor ADC dividers: 10k top / 20k bottom -> x0.667 (4.5V sensor -> ~3.0V, safe for 3V3 ADC) [REVIEW]
+R("Rp1", "10k", 86, 78); R("Rp2", "20k", 86, 82)
+R("Rl1", "10k", 92, 78); R("Rl2", "20k", 92, 82)
+R("Rc1", "10k", 98, 78); R("Rc2", "20k", 98, 82)
 R("R4", "4k7", 104, 72)
 # Programming / power header (replaces USB-C; see DESIGN [REVIEW])
 part("J8", "PROG_USB", "Connector_Generic", "Conn_01x06", "Connector_PinHeader_2.54mm",
