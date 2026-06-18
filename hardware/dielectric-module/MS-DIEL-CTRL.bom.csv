@@ -5,9 +5,11 @@ qty,value,footprint,refs
 3,10uF,C_0805_2012Metric,C2 C7 C8
 1,10uH,L_7.3x7.3_H3.5,L1
 1,120R,R_0805_2012Metric,R3
+2,18pF,C_0805_2012Metric,C11 C12
 1,1uF,C_0805_2012Metric,C3
 2,22uF,C_0805_2012Metric,C5 C6
 1,24V_IN,"TerminalBlock_Phoenix_MPT-0,5-2-2.54_1x02_P2.54mm_Horizontal",J1
+1,40MHz,Crystal_SMD_3215-2Pin_3.2x1.5mm,Y1
 1,4k7,R_0805_2012Metric,R4
 1,AMS1117-3.3,SOT-223-3_TabPin2,U5
 1,ANALOG_SENSORS,JST_XH_B6B-XH-A_1x06_P2.50mm_Vertical,J5

@@ -12,7 +12,7 @@ name, so the netlist uses authoritative pinouts. Run with the KiCad-bundled pyth
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 import pcbnew
-from kisch import SymDef, Comp, Schematic, uuid_for
+from kisch import SymDef, Comp, Schematic, uuid_for, stack_col
 from kizen import Board
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -62,6 +62,9 @@ part("U2", "MCP2518FD", "Interface_CAN_LIN", "MCP2518FD-xQBB", SO, "SOIC-14_3.9x
 part("U3", "TJA1051T-3", "Interface_CAN_LIN", "TJA1051T-3", SO, "SOIC-8_3.9x4.9mm_P1.27mm", 104, 52)
 Cc("C9", "100nF", 94, 34); Cc("C10", "100nF", 94, 52)
 R("R3", "120R", 116, 60)
+# MCP2518FD oscillator: 40 MHz crystal + load caps (Pierce). [REVIEW] cap value vs crystal CL.
+part("Y1", "40MHz", "Device", "Crystal", "Crystal", "Crystal_SMD_3215-2Pin_3.2x1.5mm", 112, 40)
+Cc("C11", "18pF", 108, 44); Cc("C12", "18pF", 116, 44)
 part("J2", "CAN", "Connector_Generic", "Conn_01x03", "TerminalBlock_Phoenix",
      "TerminalBlock_Phoenix_MPT-0,5-3-2.54_1x03_P2.54mm_Horizontal", 120, 70)
 # Solenoid drivers
@@ -128,8 +131,9 @@ net("MCP_CS", P("U1", "IO10"), ("U2", "13"))
 net("MCP_INT", P("U1", "IO9"), ("U2", "4"))
 net("MCP_TXCAN", ("U2", "1"), P("U3", "TXD"))
 net("MCP_RXCAN", ("U2", "2"), P("U3", "RXD"))
-net("OSC1", ("U2", "6"))
-net("OSC2", ("U2", "5"))
+net("OSC1", ("U2", "6"), P("Y1", "1"), P("C11", "1"))
+net("OSC2", ("U2", "5"), P("Y1", "2"), P("C12", "1"))
+net("GND", P("C11", "2"), P("C12", "2"))   # crystal load-cap returns
 # CAN bus
 net("CANH", P("U3", "CANH"), P("R3", "1"), P("J2", "1"))
 net("CANL", P("U3", "CANL"), P("R3", "2"), P("J2", "2"))
@@ -165,19 +169,80 @@ net("SSR_PUMP_O", P("Q4", "D"), P("J4", "1"))
 net("SSR_CHILL_O", P("Q5", "D"), P("J4", "2"))
 net("SSR_DEION_O", P("Q6", "D"), P("J4", "3"))
 
-# ----------------------------- emit schematic -----------------------------
-S = Schematic("MS-DIEL-CTRL")
+# ----------------------------- emit schematic (functional blocks) -----------------------------
+S = Schematic("MS-DIEL-CTRL", paper="A3",
+              title="MS-DIEL-CTRL  Dielectric / Coolant CAN-FD Controller",
+              rev="A", date="2026-06-16", company="Microspark")
 order = list(PARTS.values())
-G = 1.27  # KiCad schematic grid; keep origins on-grid so pins land on-grid
-ORIGIN, COL, ROW = 20 * G, 30 * G, 26 * G   # 25.4, 38.1, 33.02 mm (all multiples of 1.27)
-for i, pt in enumerate(order):
-    sx = ORIGIN + (i % 8) * COL
-    sy = ORIGIN + (i // 8) * ROW
+
+# Functional block frames (x, y, w, h) on the A3 sheet (420 x 297 mm).
+BLOCKS = [
+    ("POWER:  24V in  ->  5V buck  ->  3V3 LDO", 10, 16, 158, 96),
+    ("ESP32-S3 MCU  +  PROGRAM / USB HEADER",   176, 16, 104, 168),
+    ("CAN-FD:  MCP2518FD  +  TJA1051 xcvr",      292, 16, 116, 96),
+    ("FLUSH SOLENOID DRIVERS  (low-side N-FET)", 10, 124, 158, 120),
+    ("PUMP / CHILLER / DEIONISER  (SSR drive)", 176, 196, 104, 60),
+    ("ANALOG + DIGITAL SENSORS",                 292, 124, 116, 120),
+]
+for (t, x, y, w, h) in BLOCKS:
+    S.block(t, x, y, w, h)
+
+# Explicit per-part placement inside the blocks (symbol-origin x,y).
+# Vertical columns use stack_col() which auto-spaces by each part's pin extent so facing
+# pin-stubs never collide (verified by the generator's collision report).
+place = {}
+symof = lambda r: PARTS[r]["sym"]
+def vcol(x, y_top, refs, gap=3.81):
+    for r, yy in stack_col(refs, symof, y_top, gap).items():
+        place[r] = (x, yy)
+
+# POWER:  input protection | buck | feedback | LDO
+vcol(28,  24, ["J1", "Q7", "D5"])
+vcol(72,  24, ["U4", "L1", "D6", "C5"])
+vcol(116, 22, ["C6", "R7", "R8"])
+vcol(150, 22, ["U5", "C7", "C8"])
+# MCU:  U1 (large) centred; support R/C column to the right; program header below
+place["U1"] = (214, 96)
+vcol(264, 22, ["C1", "C2", "R1", "C3", "R2", "C4"])
+place["J8"] = (250, 168)
+# CAN:  MCP2518FD over TJA1051 (stacked so their side labels don't clash); xtal + caps around
+vcol(338, 26, ["U2", "U3"], gap=10.0)
+place["C9"] = (300, 40); place["C10"] = (300, 92)         # decoupling, left of the ICs
+place["Y1"] = (388, 44); place["C11"] = (402, 60); place["C12"] = (402, 36)  # xtal, right
+place["R3"] = (388, 92); place["J2"] = (300, 70)
+# FLUSH solenoids:  flyback diodes | FETs | gate resistors | connector
+vcol(28,  134, ["D1", "D2", "D3"], gap=8.0)
+vcol(66,  134, ["Q1", "Q2", "Q3"], gap=8.0)
+vcol(104, 134, ["Rg1", "Rg2", "Rg3"], gap=8.0)
+place["J3"] = (142, 150)
+# SSR drivers:  FET row, gate-resistor row, connector
+place["Q4"] = (192, 212); place["Q5"] = (214, 212); place["Q6"] = (236, 212)
+place["Rb4"] = (192, 236); place["Rb5"] = (214, 236); place["Rb6"] = (236, 236)
+place["J4"] = (262, 222)
+# SENSORS:  divider pairs (pressure/level/cond) in two columns + 1-Wire pull-up; connectors
+vcol(304, 132, ["Rp1", "Rp2", "Rl1", "Rl2"])
+vcol(330, 132, ["Rc1", "Rc2", "R4"])
+place["J5"] = (360, 150); place["J6"] = (360, 200); place["J7"] = (392, 150)
+
+def snap(v):
+    return round(v / 1.27) * 1.27   # land symbol origins (=> pins, labels) on the 1.27 mm grid
+
+for pt in order:
+    sx, sy = place.get(pt["ref"], (10, 280))   # fallback: bottom-left margin
     fpfield = "%s:%s" % (pt["fplib"], pt["fp"])
-    S.add(Comp(pt["ref"], pt["val"], pt["sym"], fpfield, sx, sy))
+    S.add(Comp(pt["ref"], pt["val"], pt["sym"], fpfield, snap(sx), snap(sy)))
 for name, pps in NETS.items():
     for (ref, num) in pps:
         S.connect(ref, num, name)
+
+# No-connect flags on genuinely-unused IC + connector spare pins (kills ERC pin-not-connected):
+#   U1 unused GPIO, U2 MCP2518FD CLKO/INT0/INT1, U4 buck PG, J6/J7 spare pins.
+S.nc_unused("U1", "U2", "U4", "J6", "J7")
+# PWR_FLAG only on rails with NO power-output pin driving them (+3V3 is driven by U5's VO).
+S.power_flag("+24V", snap(40), snap(12))
+S.power_flag("+5V", snap(80), snap(12))
+S.power_flag("GND", snap(120), snap(12))
+
 sch_path = os.path.join(HERE, "MS-DIEL-CTRL.kicad_sch")
 S.write(sch_path)
 
